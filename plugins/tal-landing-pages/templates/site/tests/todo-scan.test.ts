@@ -196,3 +196,33 @@ describe("התבנית עצמה", () => {
     expect(files).toEqual([]);
   });
 });
+
+describe("form: לפחות מייל או טלפון", () => {
+  const cfg = (email: string, phone: string) =>
+    [
+      "export const site = {",
+      "  business: {",
+      '    phone: "050-1234567",',
+      '    email: "a@b.co.il",',
+      "  },",
+      "  form: {",
+      `    email: ${email},`,
+      `    phone: ${phone},`,
+      "  },",
+      "};",
+      "",
+    ].join("\n");
+  it('שניהם "hidden" ← נספר כחוסר, עם הסבר', () => {
+    const r = scanForTodos(fixture({ "site.config.ts": cfg('"hidden"', '"hidden"') }));
+    expect(r.total).toBe(1);
+    expect(r.hits[0].text).toMatch(/לפחות מייל או טלפון/);
+  });
+  it("אחד מהם מוצג ← תקין. פרטי העסק (business.phone/email) לא מתבלבלים עם הטופס", () => {
+    for (const [e, p] of [
+      ['"hidden"', '"required"'],
+      ['"optional"', '"hidden"'],
+      ['"required"', '"required"'],
+    ])
+      expect(scanForTodos(fixture({ "site.config.ts": cfg(e, p) })).total, `${e}/${p}`).toBe(0);
+  });
+});

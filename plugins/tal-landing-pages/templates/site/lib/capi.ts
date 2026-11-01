@@ -19,7 +19,8 @@ export function capiUrl(pixelId: string): string {
 }
 
 export type CapiUserData = {
-  em: string[];
+  /** חסר כשהטופס לא ביקש מייל, או שהליד לא מסר (שדה רשות) */
+  em?: string[];
   ph?: string[];
   fbp?: string;
   fbc?: string;
@@ -41,6 +42,7 @@ export type CapiPayload = { data: CapiEvent[]; test_event_code?: string };
 /**
  * אירוע Lead ל-Conversions API.
  * מייל וטלפון מגובבים SHA-256 אחרי נרמול (מייל באותיות קטנות, טלפון 972XXXXXXXXX).
+ * רק מה שהליד באמת מסר: בלי מייל אין em, בלי טלפון אין ph.
  * ה-IP נשלח למטא בלבד ולא נשמר אצלנו.
  * קוראים לפונקציה הזו רק אם הליד הסכים לשיווק.
  */
@@ -51,9 +53,9 @@ export function buildCapiEvent(
   const createdMs = new Date(record.createdAt).getTime();
   const { lead, tracking } = record;
 
-  const user_data: CapiUserData = {
-    em: [sha256Hex(lead.email.trim().toLowerCase())],
-  };
+  const user_data: CapiUserData = {};
+  const email = lead.email.trim().toLowerCase();
+  if (email) user_data.em = [sha256Hex(email)];
   if (lead.phone) user_data.ph = [sha256Hex(phoneToInternational(lead.phone))];
   if (tracking.fbp) user_data.fbp = tracking.fbp;
   if (tracking.fbc) user_data.fbc = tracking.fbc;

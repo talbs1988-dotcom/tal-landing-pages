@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { site } from "@/site.config";
 import { TODO, isTodo, isFilled } from "@/lib/todo";
 import { siteUrl } from "@/lib/siteUrl";
+import { PRISTINE } from "./templateState";
 
 /** כל הערכים (מחרוזות) בעומק האובייקט */
 function strings(value: unknown): string[] {
@@ -75,11 +76,19 @@ describe("site.config", () => {
     expect(site.collects).toBeDefined();
   });
 
-  it("בתבנית הריקה יש לפחות TODO אחד", () => {
+  it.skipIf(!PRISTINE)("בתבנית: מייל וטלפון חובה, ושירות כברירת מחדל בתקנון", () => {
+    expect(site.form.email).toBe("required");
+    expect(site.form.phone).toBe("required");
+    expect(site.legal.offerType).toBe("service");
+  });
+
+  // רק בתבנית הריקה: בדף שמילאו עד הסוף אין TODO, וזה המצב הרצוי
+  it.skipIf(!PRISTINE)("בתבנית הריקה יש לפחות TODO אחד", () => {
     expect(strings(site).filter(isTodo).length).toBeGreaterThan(0);
   });
 
-  it("צבעי ברירת המחדל הם hex תקין ועוברים ניגודיות AA", () => {
+  // רץ על הצבעים האמיתיים של הדף בכוונה: מיתוג שלא עובר ניגודיות הוא ממצא אמיתי
+  it("צבעי המותג הם hex תקין ועוברים ניגודיות AA", () => {
     for (const color of Object.values(site.brand)) {
       expect(color).toMatch(/^#[0-9a-f]{6}$/i);
     }

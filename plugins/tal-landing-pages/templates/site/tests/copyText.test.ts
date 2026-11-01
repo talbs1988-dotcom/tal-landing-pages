@@ -76,8 +76,8 @@ describe("t, alt ו-editProps על copy.json", () => {
   });
 
   it("alt לתמונה שאין לה מפתח: [למלא]", () => {
-    // @ts-expect-error בתבנית עוד אין מפתחות img.*, אז אין שם תקין
-    expect(alt("hero")).toBe(TODO);
+    // שם שלא יהיה אף פעם ב-copy.json, גם בדף שמילאו בו img.hero. ה-cast עוקף את בדיקת הטיפוסים בכוונה
+    expect(alt("no-such-image-in-any-page" as unknown as Parameters<typeof alt>[0])).toBe(TODO);
   });
 
   it("editProps בבדיקות (NODE_ENV=test) ריק", () => {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { site } from "@/site.config";
 import {
   collectedFields,
+  contactListHe,
   display,
   listHe,
   PRIVACY_SECTIONS,
@@ -67,9 +68,12 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>האם חובה למסור:</strong> אין חובה לפי חוק למסור לנו את
-            הפרטים, והמסירה תלויה ברצונכם. בטופס, {listHe(required)} הם שדות
-            חובה
+            הפרטים, והמסירה תלויה ברצונכם. בטופס, {listHe(required)}{" "}
+            {required.length === 1 ? "הוא שדה חובה" : "הם שדות חובה"}
             {optional.length > 0 && <>, ו{listHe(optional)} רשות</>}.
+            {optional.length > 1 && (
+              <> צריך למלא לפחות אחד מהם, כדי שנוכל לחזור אליכם.</>
+            )}
           </li>
           <li>
             <strong>מה קורה אם לא מוסרים:</strong> בלי שדות החובה לא נוכל לקבל
@@ -172,8 +176,8 @@ export default function PrivacyPage() {
         {collects.capi && (
           <p>
             אם סימנתם בטופס הסכמה לדיוור וגם אישרתם עוגיות שיווק, השרת שלנו
-            מדווח למטא גם על ההרשמה עצמה (Conversions API). הדיווח כולל את המייל
-            והטלפון שלכם בהצפנה חד-כיוונית (hash), את כתובת ה-IP, את סוג הדפדפן,
+            מדווח למטא גם על ההרשמה עצמה (Conversions API). הדיווח כולל את{" "}
+            {contactListHe(form)} שלכם בהצפנה חד-כיוונית (hash), את כתובת ה-IP, את סוג הדפדפן,
             ואת מזהי העוגיות של מטא (_fbp ו-_fbc) או את מזהה הקליק על המודעה
             (fbclid), אם יש. מטא משתמשת בהם כדי לשייך את ההרשמה למודעה שראיתם.
           </p>

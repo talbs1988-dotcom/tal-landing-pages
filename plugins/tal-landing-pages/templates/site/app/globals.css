@@ -20,7 +20,13 @@
   --color-accent: var(--brand-accent);
   --color-background: var(--brand-background);
   --color-foreground: var(--brand-text);
+  /*
+   * שני משתנים, ושלב העיצוב מחליף את שניהם: --font-sans לטקסט, --font-heading לכל הכותרות.
+   * כל h1-h4 באתר (גם בחלקים הקבועים: דף תודה, דפים משפטיים, באנר העוגיות, 404) מקבלים את
+   * --font-heading אוטומטית, מהכלל ב-@layer base. אותו פונט זמין גם כ-class: font-heading.
+   */
   --font-sans: var(--font-rubik), system-ui, "Segoe UI", Arial, sans-serif;
+  --font-heading: var(--font-rubik), system-ui, "Segoe UI", Arial, sans-serif;
 }
 
 @layer base {
@@ -34,6 +40,14 @@
     font-family: var(--font-sans);
     line-height: 1.6;
     text-rendering: optimizeLegibility;
+  }
+
+  /* כל הכותרות בפונט הכותרות. סקשן שרוצה כותרת בפונט הטקסט שם font-sans */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
   }
 
   /* טקסט דוגמה בשדות: צבע מלא שעובר 4.5:1 על שדה לבן (4.83:1), ולא שקיפות של צבע הטקסט */

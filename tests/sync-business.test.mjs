@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile, mkdir, readdir } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -38,6 +39,7 @@ const FILLED = {
   "רכז/ת נגישות, שם": "דנה כהן",
   "רכז/ת נגישות, טלפון": "050-1234567",
   "רכז/ת נגישות, מייל": "dana@example.co.il",
+  "מה העסק מוכר": "שירות",
   "מען להודעות ביטול והחזרות": "אין",
   "כלי אוטומציה שמקבל את הליד": "Make",
   "מערכת דיוור": "רב מסר",
@@ -111,6 +113,35 @@ test("sync fills every mapped field and reports nothing missing", async () => {
   // a second run changes nothing
   const again = await syncBusiness(page, { findBusinessRoot });
   assert.deepEqual(again.updated, []);
+});
+
+test("what the business sells maps to legal.offerType", () => {
+  const template = readFileSync(TEMPLATE_CONFIG, "utf8");
+  const cases = [
+    ["שירות", "service"],
+    ["ליווי אישי", "service"],
+    ["מוצר", "product"],
+    ["מוצרים פיזיים", "product"],
+    ["גם וגם", "both"],
+    ["מוצר וגם שירות", "both"],
+  ];
+  for (const [answer, expected] of cases) {
+    const { values, missing } = planSync(
+      md({ ...FILLED, "מה העסק מוכר": answer }),
+      template,
+    );
+    assert.ok(!missing.some((m) => m.field === "legal.offerType"), answer);
+    // "service" is already the template default, so it is not an update
+    if (expected === "service") assert.equal(values.has("legal.offerType"), false, answer);
+    else assert.equal(values.get("legal.offerType"), expected, answer);
+  }
+  const bad = planSync(md({ ...FILLED, "מה העסק מוכר": "לא יודעת" }), template);
+  assert.match(
+    bad.missing.find((m) => m.field === "legal.offerType")?.reason ?? "",
+    /שירות, מוצר, גם וגם/,
+  );
+  const open = planSync(md({ ...FILLED, "מה העסק מוכר": "[שירות / מוצר / גם וגם]" }), template);
+  assert.ok(open.missing.some((m) => m.field === "legal.offerType"), "placeholder is still missing");
 });
 
 test("sync does not touch the rest of the file", async () => {

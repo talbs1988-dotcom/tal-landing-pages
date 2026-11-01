@@ -230,7 +230,7 @@ export function AccessibilityWidget() {
                   className={`flex min-h-11 flex-col items-center justify-center rounded-lg border-2 px-1 py-1 text-sm font-medium ${pressed ? on : off}`}
                 >
                   <span>{TEXT_LABELS[level]}</span>
-                  <span className="text-xs">
+                  <span className="text-sm">
                     {TEXT_SIZES[level]}%
                   </span>
                 </button>

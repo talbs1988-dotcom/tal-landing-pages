@@ -17,6 +17,10 @@ import {
   vatNote,
   visibleSections,
   type SectionContext,
+  contactListHe,
+  offerWordsHe,
+  sellsProduct,
+  sellsService,
 } from "@/lib/legal";
 
 const NONE: SectionContext = {
@@ -113,6 +117,34 @@ describe("טקסטים לפי ה-config", () => {
       required: false,
     });
     expect(collectedFields({ phone: "hidden" })).toHaveLength(2);
+  });
+
+  it("collectedFields לפי הגדרת המייל: רשות, מוסתר", () => {
+    expect(collectedFields({ email: "optional", phone: "required" })[1]).toEqual({
+      label: "כתובת מייל",
+      required: false,
+    });
+    expect(collectedFields({ email: "hidden", phone: "required" })).toEqual([
+      { label: "שם", required: true },
+      { label: "מספר טלפון", required: true },
+    ]);
+    // טלפון רשות כשהמייל מוסתר הוא חובה בפועל, וכך גם כתוב במדיניות
+    expect(collectedFields({ email: "hidden", phone: "optional" })[1].required).toBe(true);
+  });
+
+  it("contactListHe: רק השדות שבטופס", () => {
+    expect(contactListHe({ email: "required", phone: "required" })).toBe("המייל והטלפון");
+    expect(contactListHe({ email: "hidden", phone: "required" })).toBe("הטלפון");
+    expect(contactListHe({ email: "required", phone: "hidden" })).toBe("המייל");
+    expect(contactListHe({ phone: "optional" }, "long")).toBe("כתובת המייל ומספר הטלפון");
+  });
+
+  it("offerType: מה התקנון מזכיר", () => {
+    expect([sellsProduct("service"), sellsService("service")]).toEqual([false, true]);
+    expect([sellsProduct("product"), sellsService("product")]).toEqual([true, false]);
+    expect([sellsProduct("both"), sellsService("both")]).toEqual([true, true]);
+    expect(offerWordsHe("service")).toBe("שירותים");
+    expect(offerWordsHe("both")).toBe("מוצרים ושירותים");
   });
 });
 

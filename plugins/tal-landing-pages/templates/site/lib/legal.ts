@@ -6,6 +6,8 @@
  */
 import { TODO, isFilled, isTodo } from "@/lib/todo";
 import { isValidPixelId } from "@/lib/pixel";
+import { resolveFields, type FormFields } from "@/lib/lead";
+import type { OfferType } from "@/site.config";
 
 /** ערך להצגה: הטקסט עצמו אם מולא, אחרת סימון TODO גלוי */
 export function display(v: string): string {
@@ -96,17 +98,51 @@ export function vatNote(type: string): string {
 
 export type FormField = { label: string; required: boolean };
 
-/** אילו שדות הטופס אוסף, ואילו מהם חובה, לפי site.form.phone */
-export function collectedFields(form: {
-  phone: "required" | "optional" | "hidden";
-}): FormField[] {
-  const fields: FormField[] = [
-    { label: "שם", required: true },
-    { label: "כתובת מייל", required: true },
-  ];
-  if (form.phone !== "hidden")
-    fields.push({ label: "מספר טלפון", required: form.phone === "required" });
+/** אילו שדות הטופס אוסף, ואילו מהם חובה, לפי site.form.email ו-site.form.phone */
+export function collectedFields(form: FormFields): FormField[] {
+  const { email, phone } = resolveFields(form);
+  const fields: FormField[] = [{ label: "שם", required: true }];
+  if (email !== "hidden")
+    fields.push({ label: "כתובת מייל", required: email === "required" });
+  if (phone !== "hidden")
+    fields.push({ label: "מספר טלפון", required: phone === "required" });
   return fields;
+}
+
+/**
+ * פרטי הקשר שהטופס אוסף, במילים, למשפטים על מה עובר למטא או נשמר:
+ * short ← "המייל והטלפון", long ← "כתובת המייל ומספר הטלפון". רק השדות שמוצגים.
+ */
+export function contactListHe(
+  form: FormFields,
+  style: "short" | "long" = "short",
+): string {
+  const { email, phone } = resolveFields(form);
+  const words =
+    style === "short"
+      ? { email: "המייל", phone: "הטלפון" }
+      : { email: "כתובת המייל", phone: "מספר הטלפון" };
+  const items: string[] = [];
+  if (email !== "hidden") items.push(words.email);
+  if (phone !== "hidden") items.push(words.phone);
+  return listHe(items);
+}
+
+/** האם התקנון מדבר על מוצר (החזרת מוצר, 14 ימים מקבלת המוצר) */
+export function sellsProduct(t: OfferType): boolean {
+  return t === "product" || t === "both";
+}
+
+/** האם התקנון מדבר על שירות (מועד שנקבע, אין מה להחזיר) */
+export function sellsService(t: OfferType): boolean {
+  return t === "service" || t === "both";
+}
+
+/** "מוצרים ושירותים" / "שירותים" / "מוצרים", לפי מה שהעסק מוכר */
+export function offerWordsHe(t: OfferType): string {
+  if (t === "product") return "מוצרים";
+  if (t === "service") return "שירותים";
+  return "מוצרים ושירותים";
 }
 
 // ---------- סעיפים ותוכן עניינים ----------

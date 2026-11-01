@@ -67,6 +67,11 @@ test("site template ships a .vercelignore that keeps every env file out of the u
   assert.equal(lines.some((l) => l.startsWith("!.env")), false, "no env file is re-included");
 });
 
+test("site template .vercelignore keeps editor backups (*.bak) out of the upload", async () => {
+  const text = await readFile(join(PLUGIN, "templates", "site", ".vercelignore"), "utf8");
+  assert.ok(text.split("\n").map((l) => l.trim()).includes("*.bak"), "*.bak line");
+});
+
 test("scaffoldSite copies .vercelignore into the page's site folder", async () => {
   const dir = await page();
   const site = await scaffoldSite(dir);

@@ -57,6 +57,19 @@ function checkPhone(v) {
   return { reason: "מספר טלפון ישראלי, למשל 050-1234567" };
 }
 
+// What the business sells → legal.offerType. Decides the return wording in the terms page.
+function checkOfferType(v) {
+  const s = v.replace(/\s+/g, " ").trim();
+  const product = /מוצר/.test(s);
+  const service = /שירות|ליווי|סדנה|קורס|פגישה|טיפול|ייעוץ/.test(s);
+  if (/גם וגם|שניהם|גם מוצר|גם שירות/.test(s) || (product && service))
+    return { value: "both" };
+  if (product) return { value: "product" };
+  if (service) return { value: "service" };
+  if (/^(service|product|both)$/.test(s)) return { value: s };
+  return { reason: "צריך להיות אחד מאלה: שירות, מוצר, גם וגם" };
+}
+
 const noAddress = (ctx) =>
   ctx.street === undefined || ctx.city === undefined
     ? null
@@ -88,6 +101,7 @@ export const FIELDS = [
     check: checkEmail,
   },
   // ---- משפטי
+  { label: "מה העסק מוכר", path: "legal.offerType", check: checkOfferType },
   {
     label: "מען להודעות ביטול והחזרות",
     path: "legal.noticeAddress",

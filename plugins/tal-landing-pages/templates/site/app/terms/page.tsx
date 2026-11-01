@@ -6,6 +6,9 @@ import {
   display,
   hasAddress,
   noticeAddress,
+  offerWordsHe,
+  sellsProduct,
+  sellsService,
   TERMS_SECTIONS,
   vatNote,
 } from "@/lib/legal";
@@ -34,6 +37,9 @@ export default function TermsPage() {
   // כתובת פומבית אם יש, אחרת המען להודעות ולהחזרות (legal.noticeAddress)
   const mailAddress = noticeAddress(business.address, legal.noticeAddress);
   const publicAddress = hasAddress(business.address);
+  // מה העסק מוכר (legal.offerType). שירות בלבד ← אין בתקנון משפט על החזרת מוצר
+  const product = sellsProduct(legal.offerType);
+  const service = sellsService(legal.offerType);
 
   const sections = buildSections(TERMS_SECTIONS, {
     business: (
@@ -41,7 +47,10 @@ export default function TermsPage() {
         <p>האתר מופעל על ידי:</p>
         <BusinessDetails />
         {!publicAddress && (
-          <p>מען למשלוח הודעות ולהחזרת מוצרים: {mailAddress}</p>
+          <p>
+            {product ? "מען למשלוח הודעות ולהחזרת מוצרים" : "מען למשלוח הודעות"}:{" "}
+            {mailAddress}
+          </p>
         )}
       </>
     ),
@@ -73,7 +82,8 @@ export default function TermsPage() {
       <>
         <p>{vatNote(business.type)}</p>
         <p>
-          לפני כל הזמנה מוצגים פרטי המוצר או השירות, המחיר המלא ותנאי התשלום.
+          לפני כל הזמנה מוצגים פרטי{" "}
+          {product && service ? "המוצר או השירות" : product ? "המוצר" : "השירות"}, המחיר המלא ותנאי התשלום.
           התשלום נעשה בדף סליקה מאובטח של חברת סליקה. פרטי כרטיס האשראי לא
           עוברים דרך האתר הזה ולא נשמרים בו.
         </p>
@@ -90,22 +100,28 @@ export default function TermsPage() {
         </p>
         <h3 className="pt-2 text-xl font-semibold">עד מתי אפשר לבטל</h3>
         <Bullets>
-          <li>
-            <strong>מוצר:</strong> מיום העסקה ועד 14 ימים מהיום שבו קיבלתם את
-            המוצר, או מהיום שבו קיבלתם את מסמך פרטי העסקה, המאוחר מביניהם.
-          </li>
-          <li>
-            <strong>שירות:</strong> מיום העסקה ועד 14 ימים ממנה, או מהיום שבו
-            קיבלתם את מסמך פרטי העסקה, המאוחר מביניהם. אם לשירות נקבע מועד (למשל
-            פגישה או סדנה), צריך לבטל לפחות שני ימים שאינם ימי מנוחה לפני המועד.
-          </li>
+          {product && (
+            <li>
+              <strong>מוצר:</strong> מיום העסקה ועד 14 ימים מהיום שבו קיבלתם את
+              המוצר, או מהיום שבו קיבלתם את מסמך פרטי העסקה, המאוחר מביניהם.
+            </li>
+          )}
+          {service && (
+            <li>
+              <strong>שירות:</strong> מיום העסקה ועד 14 ימים ממנה, או מהיום שבו
+              קיבלתם את מסמך פרטי העסקה, המאוחר מביניהם. אם לשירות נקבע מועד
+              (למשל פגישה או סדנה), צריך לבטל לפחות שני ימים שאינם ימי מנוחה לפני
+              המועד.
+            </li>
+          )}
           <li>
             <strong>
               אנשים עם מוגבלות, אזרחים ותיקים (מגיל 65) ועולים חדשים (עד 5 שנים
               מיום העלייה):
             </strong>{" "}
-            אפשר לבטל עד 4 חודשים מיום העסקה, מיום קבלת המוצר או מיום קבלת מסמך
-            פרטי העסקה, המאוחר מביניהם, אם העסקה כללה שיחה עם העסק (גם בטלפון או
+            אפשר לבטל עד 4 חודשים מיום העסקה
+            {product ? ", מיום קבלת המוצר" : ""} או מיום קבלת מסמך פרטי העסקה,
+            המאוחר מביניהם, אם העסקה כללה שיחה עם העסק (גם בטלפון או
             בהתכתבות). ייתכן שנבקש תעודה מתאימה.
           </li>
         </Bullets>
@@ -118,9 +134,11 @@ export default function TermsPage() {
         </p>
         <p>
           אם הביטול הוא בגלל פגם, אי-התאמה לפרטים שפורסמו, איחור באספקה או הפרה
-          אחרת שלנו, לא ייגבו דמי ביטול, ונחזיר את כל הסכום. מוצר שקיבלתם יוחזר
-          לעסק ({mailAddress}).
+          אחרת שלנו, לא ייגבו דמי ביטול, ונחזיר את כל הסכום.
         </p>
+        {/* נוסח ההחזרה לפי legal.offerType: מוצר מוחזר למען. בשירות אין מה להחזיר */}
+        {product && <p>מוצר שקיבלתם יוחזר לעסק ({mailAddress}).</p>}
+        {service && <p>בשירות אין מה להחזיר: מספיקה הודעת הביטול.</p>}
 
         <h3 className="pt-2 text-xl font-semibold">על מה אי אפשר לבטל</h3>
         <p>
@@ -184,8 +202,8 @@ export default function TermsPage() {
         title="תקנון ותנאי שימוש"
         intro={
           <p>
-            התקנון חל על השימוש באתר של {name} ועל רכישה של מוצרים ושירותים
-            דרכו. הוא כתוב בלשון רבים ופונה לכולם.
+            התקנון חל על השימוש באתר של {name} ועל רכישה של{" "}
+            {offerWordsHe(legal.offerType)} דרכו. הוא כתוב בלשון רבים ופונה לכולם.
           </p>
         }
         sections={sections}

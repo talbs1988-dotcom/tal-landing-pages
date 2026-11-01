@@ -10,7 +10,7 @@
  *  3. ב-site.config.ts: בדיקות ערכים (configProblems), כל בעיה נספרת כחוסר אחד:
  *     page.url שמולא אבל אינו כתובת https תקינה, ו-legal.noticeAddress שחסר (TODO או "")
  *     כשאין לעסק כתובת פומבית (שלושת שדות business.address הם ""). כשיש כתובת, או שהיא
- *     עוד TODO, המען לא נספר.
+ *     עוד TODO, המען לא נספר. ו-form.email וגם form.phone "hidden": אין בטופס שום דרך לחזור לליד.
  * קוד שרק משתמש ב-isTodo(...) או ב-isFilled(...) לא נספר.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -79,6 +79,7 @@ export function configProblems(lines) {
   let section = "";
   const address = [];
   let notice;
+  const contact = {};
   for (let i = start; i < lines.length; i++) {
     const line = lines[i];
     const open = /^\s*(\w+)\s*:\s*\{/.exec(line);
@@ -92,6 +93,12 @@ export function configProblems(lines) {
     if (section === "legal") {
       const v = literalValue(line, "noticeAddress");
       if (v !== undefined) notice = { line: i + 1, value: v };
+    }
+    if (section === "form") {
+      for (const k of ["email", "phone"]) {
+        const v = literalValue(line, k);
+        if (v !== undefined && v !== null) contact[k] = { line: i + 1, value: v };
+      }
     }
     if (section === "page") {
       const url = literalValue(line, "url");
@@ -114,6 +121,13 @@ export function configProblems(lines) {
         count: 1,
       });
     }
+  }
+  if (contact.email?.value === "hidden" && contact.phone?.value === "hidden") {
+    out.push({
+      line: contact.email.line,
+      text: 'form.email ו-form.phone שניהם "hidden": בטופס חייב להיות לפחות מייל או טלפון, אחרת אין איך לחזור לליד',
+      count: 1,
+    });
   }
   return out;
 }

@@ -1,9 +1,9 @@
-import type { PhoneField } from "@/site.config";
 import { buildCapiEvent, type CapiPayload } from "@/lib/capi";
 import {
   buildLeadRecord,
   toWebhookPayload,
   validateLead,
+  type FormFields,
   type LeadRecord,
   type WebhookPayload,
 } from "@/lib/lead";
@@ -60,7 +60,8 @@ export type StepResult = "ok" | "failed" | "off" | "deferred";
 
 export type HandleLeadDeps = {
   env: LeadEnv;
-  form: { phone: PhoneField };
+  /** השדות בטופס: site.form (email ו-phone) */
+  form: FormFields;
   backup: (record: LeadRecord) => Promise<void>;
   postWebhook: (
     url: string,

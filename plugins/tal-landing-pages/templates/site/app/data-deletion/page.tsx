@@ -5,6 +5,7 @@ import { site } from "@/site.config";
 import {
   DELETION_SECTIONS,
   collectedFields,
+  contactListHe,
   display,
   listHe,
 } from "@/lib/legal";
@@ -30,6 +31,7 @@ export default function DataDeletionPage() {
   const { business, form, legal } = site;
   const name = display(business.displayName);
   const fields = listHe(collectedFields(form).map((f) => f.label));
+  const emailCollected = collectedFields(form).some((f) => f.label === "כתובת מייל");
   const p = legal.processors;
   // הדיווח מהשרת למטא (CAPI) מוזכר רק כשהוא מוגדר
   const capi = siteCollects().capi;
@@ -51,8 +53,11 @@ export default function DataDeletionPage() {
         </p>
         <p>
           כתבו &quot;בקשה למחיקת מידע&quot;, ואת הפרטים שמסרתם בטופס ({fields}),
-          כדי שנמצא אותם. ייתכן שנבקש לוודא שהבקשה באמת מכם, למשל בתשובה מאותה
-          כתובת מייל.
+          כדי שנמצא אותם. ייתכן שנבקש לוודא שהבקשה באמת מכם, למשל{" "}
+          {emailCollected
+            ? "בתשובה מאותה כתובת מייל"
+            : "בשיחה מאותו מספר טלפון"}
+          .
         </p>
       </>
     ),
@@ -70,8 +75,8 @@ export default function DataDeletionPage() {
     kept: (
       <p>
         מידע שהחוק מחייב אותנו לשמור (למשל חשבוניות וקבלות, אם רכשתם מאיתנו)
-        יישמר רק לתקופה שהחוק קובע, ולא ישמש לשום מטרה אחרת. ייתכן שנשאיר את
-        כתובת המייל ברשימת &quot;לא לשלוח&quot;, רק כדי לוודא שלא תקבלו מאיתנו
+        יישמר רק לתקופה שהחוק קובע, ולא ישמש לשום מטרה אחרת. ייתכן שנשאיר את{" "}
+        {contactListHe(form, "long")} ברשימת &quot;לא לשלוח&quot;, רק כדי לוודא שלא תקבלו מאיתנו
         דיוור שוב.
       </p>
     ),
@@ -89,7 +94,7 @@ export default function DataDeletionPage() {
             <>
               {" "}
               אם סימנתם בטופס הסכמה לדיוור וגם אישרתם עוגיות שיווק, דיווחנו למטא
-              גם על ההרשמה, עם המייל והטלפון בהצפנה חד-כיוונית (hash).
+              גם על ההרשמה, עם {contactListHe(form)} בהצפנה חד-כיוונית (hash).
             </>
           )}{" "}
           את המידע הזה מטא שומרת אצלה,

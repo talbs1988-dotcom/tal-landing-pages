@@ -1,4 +1,4 @@
-import type { PhoneField } from "@/site.config";
+import type { ContactField } from "@/site.config";
 import { cleanText } from "@/lib/text";
 
 export { cleanText };
@@ -7,7 +7,7 @@ import type { Tracking } from "@/lib/utm";
 /** ליד אחרי ולידציה ונרמול */
 export type Lead = {
   name: string;
-  /** באותיות קטנות */
+  /** באותיות קטנות, או "" אם לא נמסר (שדה רשות או מוסתר) */
   email: string;
   /** בפורמט מקומי 0XXXXXXXX(X), או "" אם לא נמסר */
   phone: string;
@@ -30,9 +30,46 @@ export const MESSAGES = {
   nameMissing: "נא למלא שם (לפחות 2 תווים).",
   nameLong: "השם ארוך מדי (עד 80 תווים).",
   email: "כתובת המייל לא תקינה.",
+  emailMissing: "נא למלא כתובת מייל.",
   phoneMissing: "נא למלא מספר טלפון.",
   phone: "מספר הטלפון לא תקין. למשל: 050-1234567",
+  contactMissing: "נא למלא מייל או טלפון, כדי שנוכל לחזור.",
 } as const;
+
+/** אילו שדות פרטי קשר בטופס: מייל וטלפון. email חסר = "required" (ברירת המחדל) */
+export type FormFields = { email?: ContactField; phone: ContactField };
+
+/** השדות אחרי נרמול: תמיד עם email */
+export type ResolvedFields = { email: ContactField; phone: ContactField };
+
+/** ההודעה כששני השדות מוסתרים. מופיעה בשגיאת הבנייה */
+export const NO_CONTACT_FIELD =
+  'בטופס חייב להיות לפחות שדה אחד ליצירת קשר: מייל או טלפון. ב-site.config.ts גם form.email וגם form.phone הם "hidden". לשנות אחד מהם ל-"required" או ל-"optional".';
+
+/**
+ * השדות כמו שהטופס משתמש בהם בפועל.
+ * שדה "רשות" שהשדה השני לידו מוסתר הוא הדרך היחידה לחזור לליד, אז הוא חובה.
+ * (שניהם מוסתרים: נשאר כמו שהוא, ו-assertContactFields עוצר את הבנייה.)
+ */
+export function resolveFields(form: FormFields): ResolvedFields {
+  let email: ContactField = form.email ?? "required";
+  let phone: ContactField = form.phone;
+  if (email === "hidden" && phone === "optional") phone = "required";
+  if (phone === "hidden" && email === "optional") email = "required";
+  return { email, phone };
+}
+
+/** null אם הטופס תקין, אחרת ההסבר. התנאי: לפחות מייל או טלפון מוצג */
+export function contactFieldsProblem(form: FormFields): string | null {
+  const { email, phone } = resolveFields(form);
+  return email === "hidden" && phone === "hidden" ? NO_CONTACT_FIELD : null;
+}
+
+/** זורק אם אין בטופס שום שדה ליצירת קשר. נקרא מהטופס (רכיב שרת), אז הבנייה נכשלת */
+export function assertContactFields(form: FormFields): void {
+  const problem = contactFieldsProblem(form);
+  if (problem) throw new Error(problem);
+}
 
 // מעבר לגבול הזה לא מנסים אפילו לנקות. מונע עיבוד של מחרוזות ענקיות
 const RAW_MAX = 1000;
@@ -90,8 +127,9 @@ function rawString(v: unknown): string | null {
 
 export function validateLead(
   input: unknown,
-  form: { phone: PhoneField },
+  formFields: FormFields,
 ): ValidateResult {
+  const form = resolveFields(formFields);
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     return { ok: false, errors: { form: MESSAGES.form } };
   }
@@ -111,13 +149,23 @@ export function validateLead(
   else if (name.length < NAME_MIN) errors.name = MESSAGES.nameMissing;
   else if (name.length > NAME_MAX) errors.name = MESSAGES.nameLong;
 
-  const rawEmail = rawString(data.email);
-  const email =
-    rawEmail === null
-      ? ""
-      : cleanText(rawEmail).replace(/\s/g, "").toLowerCase();
-  if (!email || email.length > EMAIL_MAX || !EMAIL_RE.test(email))
-    errors.email = MESSAGES.email;
+  let email = "";
+  if (form.email !== "hidden") {
+    const rawEmail = rawString(data.email);
+    const given =
+      rawEmail === null
+        ? ""
+        : cleanText(rawEmail).replace(/\s/g, "").toLowerCase();
+    if (typeof data.email === "string" && rawEmail === null) {
+      errors.email = MESSAGES.email;
+    } else if (!given) {
+      if (form.email === "required") errors.email = MESSAGES.emailMissing;
+    } else if (given.length > EMAIL_MAX || !EMAIL_RE.test(given)) {
+      errors.email = MESSAGES.email;
+    } else {
+      email = given;
+    }
+  }
 
   let phone = "";
   if (form.phone !== "hidden") {
@@ -132,6 +180,18 @@ export function validateLead(
       if (normalized === null) errors.phone = MESSAGES.phone;
       else phone = normalized;
     }
+  }
+
+  // שני השדות רשות ושניהם ריקים: אין איך לחזור לליד
+  if (
+    !errors.email &&
+    !errors.phone &&
+    email === "" &&
+    phone === "" &&
+    (form.email !== "hidden" || form.phone !== "hidden")
+  ) {
+    if (form.email !== "hidden") errors.email = MESSAGES.contactMissing;
+    else errors.phone = MESSAGES.contactMissing;
   }
 
   if (Object.keys(errors).length > 0) return { ok: false, errors };

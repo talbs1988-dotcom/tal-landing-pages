@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  MESSAGES,
+  NO_CONTACT_FIELD,
+  assertContactFields,
   buildLeadRecord,
   cleanText,
+  contactFieldsProblem,
+  resolveFields,
   normalizePhone,
   phoneToInternational,
   toWebhookPayload,
@@ -204,6 +209,76 @@ describe("validateLead", () => {
     if (!r.ok && "errors" in r) {
       expect(Object.keys(r.errors).sort()).toEqual(["email", "name", "phone"]);
     }
+  });
+});
+
+describe("validateLead: שדה המייל (form.email)", () => {
+  const emailOptional = { email: "optional", phone: "required" } as const;
+  const emailHidden = { email: "hidden", phone: "required" } as const;
+
+  it("בלי form.email: ברירת המחדל היא מייל חובה", () => {
+    const r = validateLead({ ...valid, email: "" }, required);
+    expect(r.ok).toBe(false);
+    if (!r.ok && "errors" in r) expect(r.errors.email).toBe(MESSAGES.emailMissing);
+  });
+
+  it("מייל רשות: ריק עובר עם email ריק, לא תקין נדחה", () => {
+    const empty = validateLead({ ...valid, email: "  " }, emailOptional);
+    expect(empty.ok && empty.lead.email).toBe("");
+    const bad = validateLead({ ...valid, email: "not-an-email" }, emailOptional);
+    expect(bad.ok).toBe(false);
+    if (!bad.ok && "errors" in bad) expect(bad.errors.email).toBe(MESSAGES.email);
+    const good = validateLead(valid, emailOptional);
+    expect(good.ok && good.lead.email).toBe("dana@example.co.il");
+  });
+
+  it("מייל מוסתר: מתעלמים ממה שנשלח, והליד בלי מייל", () => {
+    const r = validateLead({ ...valid, email: "x@y.co" }, emailHidden);
+    expect(r.ok && r.lead.email).toBe("");
+    expect(r.ok && r.lead.phone).toBe("0501234567");
+  });
+
+  it("שניהם רשות ושניהם ריקים: שגיאה על המייל, כי אין איך לחזור", () => {
+    const both = { email: "optional", phone: "optional" } as const;
+    const r = validateLead({ ...valid, email: "", phone: "" }, both);
+    expect(r.ok).toBe(false);
+    if (!r.ok && "errors" in r) {
+      expect(r.errors.email).toBe(MESSAGES.contactMissing);
+      expect(r.errors.phone).toBeUndefined();
+    }
+    expect(validateLead({ ...valid, email: "" }, both).ok).toBe(true);
+    expect(validateLead({ ...valid, phone: "" }, both).ok).toBe(true);
+  });
+
+  it("רשות לצד שדה מוסתר הוא חובה: זו הדרך היחידה לחזור", () => {
+    expect(resolveFields({ email: "hidden", phone: "optional" })).toEqual({
+      email: "hidden",
+      phone: "required",
+    });
+    expect(resolveFields({ email: "optional", phone: "hidden" })).toEqual({
+      email: "required",
+      phone: "hidden",
+    });
+    const r = validateLead({ ...valid, phone: "" }, { email: "hidden", phone: "optional" });
+    expect(r.ok).toBe(false);
+    if (!r.ok && "errors" in r) expect(r.errors.phone).toBe(MESSAGES.phoneMissing);
+  });
+});
+
+describe("לפחות מייל או טלפון בטופס", () => {
+  it("שניהם מוסתרים: בעיה, ו-assertContactFields זורק (הבנייה נכשלת)", () => {
+    const none = { email: "hidden", phone: "hidden" } as const;
+    expect(contactFieldsProblem(none)).toBe(NO_CONTACT_FIELD);
+    expect(() => assertContactFields(none)).toThrow(/לפחות שדה אחד ליצירת קשר/);
+  });
+
+  it("כל צירוף אחר תקין", () => {
+    for (const email of ["required", "optional", "hidden"] as const)
+      for (const phone of ["required", "optional", "hidden"] as const) {
+        if (email === "hidden" && phone === "hidden") continue;
+        expect(contactFieldsProblem({ email, phone }), `${email}/${phone}`).toBeNull();
+        expect(() => assertContactFields({ email, phone })).not.toThrow();
+      }
   });
 });
 

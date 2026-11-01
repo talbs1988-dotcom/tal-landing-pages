@@ -3,7 +3,6 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -24,7 +23,41 @@ import {
 } from "../scripts/check-page.mjs";
 
 const SITE = fileURLToPath(new URL("..", import.meta.url));
-const CONFIG = readFileSync(join(SITE, "site.config.ts"), "utf8");
+/**
+ * config דוגמה קבוע, באותו מבנה של site.config.ts.
+ * לא קוראים את site.config.ts של האתר: בדף שמילאו (מיתוג, כתובת, פרטי עסק) הערכים שלו אחרים,
+ * והבדיקות של הסקריפט היו נכשלות בגלל המילוי ולא בגלל באג.
+ */
+const CONFIG = [
+  'import { TODO } from "@/lib/todo";',
+  "",
+  "export const site: SiteConfig = {",
+  "  business: {",
+  "    legalName: TODO,",
+  "    email: TODO,",
+  "  },",
+  "  page: {",
+  "    url: TODO,",
+  "    title: TODO,",
+  '    checkoutUrl: "",',
+  '    googleVerification: "",',
+  "  },",
+  "  brand: {",
+  '    primary: "#0F766E",',
+  '    text: "#1E293B",',
+  "  },",
+  "  form: {",
+  '    email: "required",',
+  '    phone: "required",',
+  "    submitLabel: TODO,",
+  "  },",
+  "  legal: {",
+  '    offerType: "service",',
+  "    retention: TODO,",
+  "  },",
+  "};",
+  "",
+].join("\n");
 // הסורק של הפלאגין, שלוש תיקיות מעל התבנית (בתוך הפלאגין עצמו)
 const COPY_SCAN = join(SITE, "..", "..", "scripts", "copy-scan.mjs");
 
@@ -50,6 +83,9 @@ describe("configValue", () => {
   it("קורא ערך מתוך סקשן, ו-TODO הוא null", () => {
     expect(configValue(CONFIG, "page", "url")).toBeNull();
     expect(configValue(CONFIG, "brand", "primary")).toBe("#0F766E");
+    // אותו שם שדה בשני סקשנים: כל אחד מהסקשן שלו
+    expect(configValue(CONFIG, "business", "email")).toBeNull();
+    expect(configValue(CONFIG, "form", "email")).toBe("required");
     expect(configValue(withUrl("https://a.co.il"), "page", "url")).toBe(
       "https://a.co.il",
     );

@@ -68,6 +68,20 @@ describe("buildCapiEvent", () => {
     expect(json).not.toContain("Test User");
   });
 
+  it("בלי מייל (form.email מוסתר או רשות שלא מולא) אין em, והטלפון נשלח", () => {
+    const p = buildCapiEvent(record({ email: "" }), {
+      sourceUrl: "https://example.co.il/",
+    });
+    expect(p.data[0].user_data).not.toHaveProperty("em");
+    expect(p.data[0].user_data.ph).toEqual([
+      "1b28f71583657cd11ff8ad48a922f9a3b051fdb267ffc4fe88c47db2338629f4",
+    ]);
+    // לא נשלח hash של מחרוזת ריקה
+    expect(JSON.stringify(p)).not.toContain(
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    );
+  });
+
   it("בלי טלפון אין ph, ובלי IP אין client_ip_address", () => {
     const p = buildCapiEvent(record({ phone: "" }), {
       sourceUrl: "https://example.co.il/",
