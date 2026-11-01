@@ -57,13 +57,13 @@ user-invocable: true
 
 ## ו. הקול
 
-1. `brand/voice.md` עדיין מכיל `[למלא]` → קודם הערה: `set … brief doing 'ראיון הושלם. עכשיו: הקול'`, ואז לפי voice-profile.md.
+1. `brand/voice.md` עדיין מכיל `[למלא]` → קודם הערה: `node '$SCRIPTS/status.mjs' set '<תיקיית הדף>' brief doing 'ראיון הושלם. עכשיו: הקול'`, ואז לפי voice-profile.md.
 2. אין בו `[למלא]` → שורה אחת שהקול כבר שמור, וממשיכים.
 
 ## ז. סיכום ואישור
 
 1. למלא ב-brief.md את "בקצרה" ואת "מה עוד חסר" (לפי "איך כותבים ל-brief.md").
-2. `set … brief doing 'ממתין לאישור הסיכום'`.
+2. `node '$SCRIPTS/status.mjs' set '<תיקיית הדף>' brief doing 'ממתין לאישור הסיכום'`.
 3. להראות:
    - את הטבלה "בקצרה" כמו שהיא בקובץ.
    - כמה ציטוטים נשמרו ב-customer-words.md, ושהשמות והמספרים נמחקו.
