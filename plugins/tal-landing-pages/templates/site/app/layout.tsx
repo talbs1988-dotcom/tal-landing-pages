@@ -11,6 +11,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { A11yInit } from "@/components/A11yInit";
 import { SkipLink } from "@/components/SkipLink";
 import { AccessibilityWidget } from "@/components/AccessibilityWidget";
+import { DevEditMode } from "@/components/DevEditMode";
 import "./globals.css";
 
 // הפונט נארז בזמן הבנייה ומוגש מהאתר עצמו. הדפדפן לא פונה לגוגל.
@@ -63,6 +64,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <CookieBanner />
         <MetaPixel />
         <AccessibilityWidget />
+        {/* מצב עריכה: רק ב-npm run dev. בבנייה לייצור הרכיב לא נכנס לחבילה (ראו DevEditMode) */}
+        <DevEditMode />
       </body>
     </html>
   );

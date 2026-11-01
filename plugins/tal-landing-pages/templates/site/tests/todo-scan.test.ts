@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 // @ts-expect-error קובץ mjs בלי טיפוסים
 import { scanForTodos } from "../scripts/todo-scan.mjs";
 
@@ -34,6 +35,24 @@ describe("scanForTodos", () => {
       "components/A.tsx:1",
       "public/note.txt:1",
     ]);
+  });
+
+  it("סופר [למלא] גם ב-content/copy.json, שורה לכל מפתח", () => {
+    const root = fixture({
+      "content/copy.json":
+        '{\n  "hero.title": "[למלא]",\n  "hero.subtitle": "כבר מולא",\n  "hero.cta": "[למלא]"\n}\n',
+    });
+    const r = scanForTodos(root);
+    expect(r.total).toBe(2);
+    expect(r.hits.map((h: any) => `${h.file}:${h.line}`)).toEqual([
+      "content/copy.json:2",
+      "content/copy.json:4",
+    ]);
+  });
+
+  it("התבנית עצמה: content/copy.json נספר", () => {
+    const r = scanForTodos(fileURLToPath(new URL("..", import.meta.url)));
+    expect(r.hits.some((h: any) => h.file === "content/copy.json")).toBe(true);
   });
 
   it("ב-site.config.ts סופר TODO שמוצב בקוד, לא הערות ולא import", () => {

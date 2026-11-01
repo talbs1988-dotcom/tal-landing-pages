@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { site } from "@/site.config";
 import { noindex } from "@/lib/seo";
 import { isUuid } from "@/lib/lead";
+import { editProps, t } from "@/lib/copyText";
 import { LeadPixelEvent } from "@/components/LeadPixelEvent";
 
 // דף התודה לא נכנס לגוגל
@@ -23,9 +23,12 @@ export default async function ThankYouPage({
   return (
     <section className="px-4 py-20 sm:py-28">
       <div className="mx-auto max-w-2xl text-center">
-        <h1 className="text-3xl font-bold sm:text-4xl">תודה! הפרטים התקבלו.</h1>
-        <p className="mt-6 text-lg text-pretty opacity-85">
-          {site.page.thankYouNextSteps}
+        {/* הטקסטים מ-content/copy.json. "מה קורה עכשיו" הוא thankYou.body */}
+        <h1 {...editProps("thankYou.title")} className="text-3xl font-bold sm:text-4xl">
+          {t("thankYou.title")}
+        </h1>
+        <p {...editProps("thankYou.body")} className="mt-6 text-lg text-pretty opacity-85">
+          {t("thankYou.body")}
         </p>
 
         {/* אירוע Lead בפיקסל: פעם אחת, רק עם הסכמה לשיווק, עם אותו eventId שנשלח מהשרת */}
