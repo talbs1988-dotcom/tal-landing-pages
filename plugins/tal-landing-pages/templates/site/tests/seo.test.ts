@@ -36,6 +36,7 @@ function full(
       ogTitle: "גיוס עובד בלי סיכון",
       ogSubtitle: "מדריך חינם לבעלי עסקים",
       lastUpdated: "2026-11-01",
+      thankYouNextSteps: "נחזור אליכם תוך יום עסקים",
       ...over.page,
     },
     business: {
