@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   findLeadFiles,
+  parseResendArgs,
   resendLeads,
   toWebhookPayload as scriptPayload,
   // @ts-expect-error קובץ mjs בלי טיפוסים
@@ -131,5 +132,17 @@ describe("scripts/resend-leads.mjs", () => {
       resendLeads({ paths: [], url: "not-a-url", fetch, log: () => {} }),
     ).rejects.toThrow();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("כתובת וובהוק בשורת הפקודה נדחית (היא נשמרת בהיסטוריה), נתיבים עוברים", () => {
+    expect(
+      parseResendArgs(["./leads", "https://hook.eu1.make.com/abc"]),
+    ).toMatchObject({ urlInArgs: true, paths: ["./leads"] });
+    expect(parseResendArgs(["hook.eu1.make.com/abc"]).urlInArgs).toBe(true);
+    expect(parseResendArgs(["./leads", "--dry-run"])).toEqual({
+      dryRun: true,
+      urlInArgs: false,
+      paths: ["./leads"],
+    });
   });
 });

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { site } from "@/site.config";
 import { pageMetadata } from "@/lib/seo";
 import { editProps, t } from "@/lib/copyText";
-import { ScrollToFormButton } from "@/components/ScrollToFormButton";
+import { CtaAction } from "@/components/CtaAction";
 import { LeadForm } from "@/components/LeadForm";
 
 // canonical ו-og:url של הדף הראשי
@@ -32,10 +32,10 @@ export default function HomePage() {
           >
             {t("hero.subtitle")}
           </p>
-          <ScrollToFormButton className="mt-10 inline-flex min-h-12 items-center justify-center rounded-lg bg-primary px-8 py-3 text-lg font-semibold text-white shadow-sm transition hover:brightness-110 active:brightness-95">
+          <CtaAction className="mt-10 inline-flex min-h-12 items-center justify-center rounded-lg bg-primary px-8 py-3 text-lg font-semibold text-white shadow-sm transition hover:brightness-110 active:brightness-95">
             {/* הטקסט ב-span: כך עורכים אותו בלי ללחוץ על הכפתור עצמו */}
             <span {...editProps("hero.cta")}>{t("hero.cta")}</span>
-          </ScrollToFormButton>
+          </CtaAction>
         </div>
       </section>
 

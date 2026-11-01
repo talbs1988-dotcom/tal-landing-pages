@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  checkCheckoutUrl,
   checkCopyJson,
   checkCopyMd,
   checkCtas,
@@ -71,6 +72,31 @@ describe("page.url", () => {
   });
 });
 
+const withCheckout = (v: string) =>
+  CONFIG.replace(/^(\s*checkoutUrl:\s*).*,$/m, `$1${v},`);
+
+describe("page.checkoutUrl (דף תשלום)", () => {
+  it("ריק ← לא רלוונטי (דף לידים), לא חובה", () => {
+    const r = checkCheckoutUrl(withCheckout('""'));
+    expect(r.ok).toBeNull();
+    expect(r.required).toBe(false);
+  });
+  it("TODO ← נכשל: נבחר דף תשלום ואין כתובת", () => {
+    const r = checkCheckoutUrl(withCheckout("TODO"));
+    expect(r.ok).toBe(false);
+    expect(r.required).toBe(true);
+  });
+  it("http או טקסט ← נכשל", () => {
+    expect(checkCheckoutUrl(withCheckout('"http://pay.example.co.il/x"')).ok).toBe(false);
+    expect(checkCheckoutUrl(withCheckout('"דף הסליקה"')).ok).toBe(false);
+  });
+  it("https מלא ← עבר", () => {
+    const r = checkCheckoutUrl(withCheckout('"https://pay.example.co.il/p/123"'));
+    expect(r.ok).toBe(true);
+    expect(r.details).toBe("https://pay.example.co.il/p/123");
+  });
+});
+
 describe("check:todo", () => {
   it("לא סופר את page.url שעוד TODO, אבל כן סופר כל השאר", () => {
     const only = CONFIG.replace(/TODO/g, '"x"').replace(
@@ -128,6 +154,17 @@ describe("copy.json", () => {
     expect(all).toMatch(/pain.body2: מירכאות/);
     expect(all).toMatch(/offer.body1: "בנוסף"/);
     expect(all).toMatch(/hero.cta: כפתור ריק/);
+  });
+  it("בולט במפתח item (learn.item1) נבדק כמו bullet", () => {
+    const r = checkCopyJson({
+      "learn.item1": "איך מגייסים בלי סיכון.",
+      "offer.bullet1": "שורה בבולט.",
+      "learn.body": "פסקה רגילה עם נקודה.",
+    });
+    const all = r.items.join("\n");
+    expect(all).toMatch(/learn.item1: נקודה/);
+    expect(all).toMatch(/offer.bullet1: נקודה/);
+    expect(all).not.toMatch(/learn.body/);
   });
   it("ביטוי שרשום ב-voice.md הוא הקול של בעל העסק, לא דפוס", () => {
     const r = checkCopyJson(
@@ -229,6 +266,7 @@ describe("runChecks", () => {
     expect(names).toEqual([
       "check:todo",
       "page.url",
+      "checkoutUrl",
       "images",
       "copy.json",
       "cta",

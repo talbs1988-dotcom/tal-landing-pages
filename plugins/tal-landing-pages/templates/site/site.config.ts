@@ -74,6 +74,19 @@ export type SiteConfig = {
     ogSubtitle: string;
     /** התאריך שבו הדפים המשפטיים עודכנו לאחרונה, בפורמט YYYY-MM-DD */
     lastUpdated: string;
+    /**
+     * דף שהפעולה בו היא קנייה: הכתובת של דף התשלום החיצוני (https מלא, למשל דף סליקה של Grow או Cardcom).
+     * מלא ← כל כפתור בדף (CtaAction) הוא קישור לדף התשלום, ולא גולל לטופס.
+     * "" (ברירת המחדל) ← דף לידים: כל כפתור גולל לטופס.
+     * בעל העסק בחר תשלום ועוד אין לו כתובת ← TODO, ו-check:todo חוסם עד שהיא מגיעה.
+     */
+    checkoutUrl: string;
+    /**
+     * אימות ב-Google Search Console בתגית meta, לדף בלי דומיין משלו (כתובת vercel.app).
+     * רק הערך שבתוך content="..." של התגית שגוגל נותן. זה לא סוד: התגית מופיעה בכל דף.
+     * "" ← אין תגית (ברירת המחדל, ואם האימות נעשה ברשומת TXT אצל ספק הדומיין).
+     */
+    googleVerification: string;
   };
   /**
    * צבעי המותג בפורמט hex (#RRGGBB).
@@ -192,6 +205,8 @@ export const site: SiteConfig = {
     ogTitle: TODO,
     ogSubtitle: TODO,
     lastUpdated: TODO,
+    checkoutUrl: "",
+    googleVerification: "",
   },
   brand: {
     primary: "#0F766E",

@@ -48,6 +48,8 @@ function full(
       ogTitle: "גיוס עובד בלי סיכון",
       ogSubtitle: "מדריך חינם לבעלי עסקים",
       lastUpdated: "2026-11-01",
+      checkoutUrl: "",
+      googleVerification: "",
       ...over.page,
     },
     business: {
@@ -75,6 +77,20 @@ function strings(value: unknown): string[] {
 
 const leaks = (v: unknown) =>
   strings(v).filter((s) => s.includes(TODO) || s.includes("למלא"));
+
+describe("אימות Search Console בתגית meta", () => {
+  it("ריק או TODO ← אין תגית אימות", () => {
+    expect(buildRootMetadata(full()).verification).toBeUndefined();
+    expect(
+      buildRootMetadata(full({ page: { googleVerification: TODO } }))
+        .verification,
+    ).toBeUndefined();
+  });
+  it("מולא ← verification.google עם הערך", () => {
+    const m = buildRootMetadata(full({ page: { googleVerification: " abc123 " } }));
+    expect(m.verification).toEqual({ google: "abc123" });
+  });
+});
 
 describe("buildRootMetadata", () => {
   it("config מלא: תבנית כותרת, תיאור, OG ו-twitter", () => {
