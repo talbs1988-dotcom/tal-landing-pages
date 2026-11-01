@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { site } from "@/site.config";
 import {
@@ -13,17 +14,22 @@ import {
   ContactLine,
   LegalPage,
   buildSections,
+  siteCollects,
 } from "@/components/LegalPage";
 
-export const metadata: Metadata = {
+// כותרת, תיאור, canonical ו-og:url משלו (lib/seo.ts)
+export const metadata: Metadata = pageMetadata(site, {
+  path: "/privacy",
   title: "מדיניות פרטיות",
   description: "איזה מידע נאסף באתר, למה, למי הוא מועבר ומה הזכויות שלכם.",
-};
+});
 
 const link = "text-primary underline underline-offset-4";
 
 export default function PrivacyPage() {
-  const { business, collects, form, legal } = site;
+  const { business, form, legal } = site;
+  // כולל את הפיקסל אם הוא מוגדר בסביבה, גם אם collects.pixel לא סומן
+  const collects = siteCollects();
   const name = display(business.displayName);
   const fields = collectedFields(form);
   const required = fields.filter((f) => f.required).map((f) => f.label);

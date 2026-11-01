@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { site } from "@/site.config";
 import {
@@ -15,10 +16,12 @@ import {
   buildSections,
 } from "@/components/LegalPage";
 
-export const metadata: Metadata = {
+// כותרת, תיאור, canonical ו-og:url משלו (lib/seo.ts)
+export const metadata: Metadata = pageMetadata(site, {
+  path: "/data-deletion",
   title: "מחיקת נתונים",
   description: "איך מבקשים למחוק את הפרטים שמסרתם באתר, ומה נמחק.",
-};
+});
 
 const link = "text-primary underline underline-offset-4";
 

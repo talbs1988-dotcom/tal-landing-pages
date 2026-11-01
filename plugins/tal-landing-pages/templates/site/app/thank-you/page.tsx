@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/site.config";
+import { noindex } from "@/lib/seo";
 import { isUuid } from "@/lib/lead";
 import { LeadPixelEvent } from "@/components/LeadPixelEvent";
 
 // דף התודה לא נכנס לגוגל
 export const metadata: Metadata = {
   title: "תודה",
-  robots: { index: false, follow: false },
+  ...noindex,
 };
 
 export default async function ThankYouPage({

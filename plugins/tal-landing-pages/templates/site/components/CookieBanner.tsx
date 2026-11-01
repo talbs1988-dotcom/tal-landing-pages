@@ -17,11 +17,18 @@ import {
  * - שלושה כפתורים בגודל ובבולטות זהים. דחייה לא מוסתרת ולא קטנה יותר.
  * - חלון לא-מודאלי בתחתית: הדף נשאר שמיש, והפוקוס עובר לכותרת כשהבאנר מופיע.
  * - Esc לא מסכים לשום דבר. אם כבר יש בחירה, Esc סוגר בלי לשנות.
- * - במובייל הבאנר יושב 5rem מעל התחתית, כדי לא לכסות את כפתור הנגישות (פינה שמאלית תחתונה).
- *   בדסקטופ הוא בצד ימין. בזמן שהוא פתוח, לגוף הדף מתווסף מרווח תחתון בגובהו כדי שאפשר לגלול לכל דבר.
+ * - במובייל הבאנר בתחתית לכל הרוחב, ובדסקטופ בצד ימין.
+ * - בזמן שהוא פתוח: לגוף הדף מתווסף מרווח תחתון בגובהו (כדי שאפשר לגלול לכל דבר),
+ *   ואם הוא מגיע לפינה השמאלית, --cookie-banner-height על <html> מרים את כפתור הנגישות מעליו.
+ * - שכבות: באנר z-40, כפתור ותפריט הנגישות z-50 (מי שצריך הגדלת טקסט צריך להגיע אליה גם כשהבאנר פתוח).
  */
 
 const SHOW_DELAY_MS = 800;
+
+/** משתנה CSS על <html> שכפתור הנגישות קורא כדי לעלות מעל הבאנר */
+const BANNER_VAR = "--cookie-banner-height";
+/** רוחב הפינה השמאלית שבה יושב כפתור הנגישות (16px שוליים + 48px כפתור + מרווח) */
+const A11Y_CORNER_PX = 80;
 
 const button =
   "inline-flex min-h-11 w-full items-center justify-center rounded-lg border-2 border-primary bg-primary px-2 py-2 text-sm font-semibold text-white hover:brightness-110";
@@ -86,10 +93,16 @@ export function CookieBanner() {
     const panel = panelRef.current;
     if (!open || !panel) return;
     const body = document.body;
+    const root = document.documentElement;
     const previous = body.style.paddingBottom;
     const apply = () => {
       const rect = panel.getBoundingClientRect();
-      body.style.paddingBottom = `${Math.ceil(window.innerHeight - rect.top + 8)}px`;
+      // כמה מקום הבאנר תופס מתחתית המסך (כולל רווח קטן)
+      const occupied = Math.ceil(window.innerHeight - rect.top + 8);
+      body.style.paddingBottom = `${occupied}px`;
+      // כפתור הנגישות (פינה שמאלית, ~80px) עולה מעל הבאנר רק כשהבאנר מגיע לפינה הזו
+      if (rect.left < A11Y_CORNER_PX) root.style.setProperty(BANNER_VAR, `${occupied}px`);
+      else root.style.removeProperty(BANNER_VAR);
     };
     apply();
     const ro = new ResizeObserver(apply);
@@ -99,6 +112,7 @@ export function CookieBanner() {
       ro.disconnect();
       window.removeEventListener("resize", apply);
       body.style.paddingBottom = previous;
+      root.style.removeProperty(BANNER_VAR);
     };
   }, [open, customize]);
 
@@ -126,7 +140,7 @@ export function CookieBanner() {
       onKeyDown={(e) => {
         if (e.key === "Escape" && hasChoice) close();
       }}
-      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-40 mx-auto max-w-md rounded-2xl border border-black/15 bg-white p-4 text-sm shadow-xl sm:inset-x-auto sm:right-4 sm:bottom-[calc(env(safe-area-inset-bottom)+1rem)] sm:mx-0"
+      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 mx-auto max-w-md rounded-2xl border border-black/15 bg-white p-4 text-sm shadow-xl sm:inset-x-auto sm:right-4 sm:bottom-[calc(env(safe-area-inset-bottom)+1rem)] sm:mx-0"
     >
       <h2
         ref={titleRef}

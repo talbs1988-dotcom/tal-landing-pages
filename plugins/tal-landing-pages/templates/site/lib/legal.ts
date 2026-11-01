@@ -5,6 +5,7 @@
  * כל ערך שלא מולא מוצג כ-TODO גלוי, כדי שלא יעלה לאוויר דף עם חור שקט.
  */
 import { TODO, isFilled, isTodo } from "@/lib/todo";
+import { isValidPixelId } from "@/lib/pixel";
 
 /** ערך להצגה: הטקסט עצמו אם מולא, אחרת סימון TODO גלוי */
 export function display(v: string): string {
@@ -102,6 +103,23 @@ export function collectedFields(form: {
 // ---------- סעיפים ותוכן עניינים ----------
 
 export type Collects = { form: boolean; pixel: boolean; analytics: boolean };
+
+export type MetaEnv = {
+  NEXT_PUBLIC_META_PIXEL_ID?: string;
+  META_PIXEL_ID?: string;
+  META_CAPI_TOKEN?: string;
+};
+
+/**
+ * מה האתר אוסף בפועל: site.collects, ועוד הפיקסל אם הוא מוגדר במשתני הסביבה.
+ * כך מדיניות הפרטיות תמיד מזכירה את מטא כשהפיקסל או ה-CAPI באמת פעילים,
+ * גם אם שכחו לסמן collects.pixel ב-config. (הדפים נבנים עם אותם משתנים שהפיקסל נטען איתם.)
+ */
+export function effectiveCollects(c: Collects, env: MetaEnv): Collects {
+  const browserPixel = isValidPixelId(env.NEXT_PUBLIC_META_PIXEL_ID);
+  const serverCapi = isValidPixelId(env.META_PIXEL_ID) && isFilled(env.META_CAPI_TOKEN);
+  return { ...c, pixel: c.pixel || browserPixel || serverCapi };
+}
 
 /** מה קובע אילו סעיפים מופיעים: מה האתר אוסף, והאם יש לעסק כתובת */
 export type SectionContext = Collects & { hasAddress: boolean };

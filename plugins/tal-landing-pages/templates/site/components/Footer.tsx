@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { site } from "@/site.config";
 import { isFilled } from "@/lib/todo";
+import { formatAddress, hasAddress, idLabel } from "@/lib/legal";
 import { CookiePreferencesButton } from "@/components/CookiePreferencesButton";
 
 /*
@@ -8,28 +9,14 @@ import { CookiePreferencesButton } from "@/components/CookiePreferencesButton";
  * הקישורים המשפטיים חובה ואסור להוריד אותם.
  */
 
-const ID_LABEL: Record<string, string> = {
-  "עוסק פטור": "מס' עוסק",
-  "עוסק מורשה": "מס' עוסק",
-  'חברה בע"מ': "ח.פ.",
-  עמותה: "מס' עמותה",
-};
-
 const linkClass =
   "underline-offset-4 hover:underline focus-visible:underline inline-flex min-h-11 items-center";
 
 export function Footer() {
   const { business } = site;
-  const idLabel = ID_LABEL[business.type] ?? "מס' עוסק";
-  const addressParts = [
-    business.address.street,
-    business.address.city,
-    business.address.postalCode,
-  ];
-  // כל השדות ריקים = אין כתובת לפרסום. TODO נשאר גלוי
-  const address = addressParts.every((p) => p.trim() === "")
-    ? ""
-    : addressParts.filter((p) => p.trim() !== "").join(", ");
+  const idName = idLabel(business.type);
+  // "" = אין כתובת לפרסום. כתובת שלא מולאה = TODO גלוי
+  const address = hasAddress(business.address) ? formatAddress(business.address) : "";
   const year = new Date().getFullYear();
 
   return (
@@ -78,7 +65,7 @@ export function Footer() {
 
         <div className="space-y-1 opacity-80">
           <p>
-            {business.legalName} · {business.type} · {idLabel}{" "}
+            {business.legalName} · {business.type} · {idName}{" "}
             {business.idNumber}
           </p>
           {address && <p>{address}</p>}

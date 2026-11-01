@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { site } from "@/site.config";
 import {
   ACCESSIBILITY_SECTIONS,
@@ -14,10 +15,12 @@ import {
   buildSections,
 } from "@/components/LegalPage";
 
-export const metadata: Metadata = {
+// כותרת, תיאור, canonical ו-og:url משלו (lib/seo.ts)
+export const metadata: Metadata = pageMetadata(site, {
+  path: "/accessibility",
   title: "הצהרת נגישות",
   description: "מה עשינו כדי שהאתר יהיה נגיש, ואיך פונים אלינו בנושא נגישות.",
-};
+});
 
 export default function AccessibilityPage() {
   const { business, legal, page } = site;

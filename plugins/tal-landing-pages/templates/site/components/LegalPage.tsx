@@ -3,6 +3,7 @@ import { site } from "@/site.config";
 import { isFilled } from "@/lib/todo";
 import {
   display,
+  effectiveCollects,
   formatAddress,
   formatHebrewDate,
   hasAddress,
@@ -24,9 +25,18 @@ export type LegalSectionContent = {
   body: ReactNode;
 };
 
+/** מה האתר אוסף בפועל: ה-config ועוד הפיקסל אם הוא מוגדר בסביבה (ראו effectiveCollects) */
+export function siteCollects() {
+  return effectiveCollects(site.collects, {
+    NEXT_PUBLIC_META_PIXEL_ID: process.env.NEXT_PUBLIC_META_PIXEL_ID,
+    META_PIXEL_ID: process.env.META_PIXEL_ID,
+    META_CAPI_TOKEN: process.env.META_CAPI_TOKEN,
+  });
+}
+
 /** מה קובע אילו סעיפים מופיעים באתר הזה */
 export function sectionContext() {
-  return { ...site.collects, hasAddress: hasAddress(site.business.address) };
+  return { ...siteCollects(), hasAddress: hasAddress(site.business.address) };
 }
 
 /** הסעיפים שמופיעים בפועל, כל אחד עם התוכן שלו */

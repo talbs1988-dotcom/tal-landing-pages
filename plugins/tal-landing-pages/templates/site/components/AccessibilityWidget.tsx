@@ -146,7 +146,7 @@ export function AccessibilityWidget() {
         aria-expanded={open}
         aria-controls="a11y-panel"
         onClick={() => setOpen((o) => !o)}
-        className="fixed z-40 flex items-center justify-center rounded-full border-2 border-white text-white shadow-lg"
+        className="fixed z-50 flex items-center justify-center rounded-full border-2 border-white text-white shadow-lg"
         style={{
           left: EDGE,
           bottom: BOTTOM,
@@ -173,7 +173,7 @@ export function AccessibilityWidget() {
         role="dialog"
         aria-labelledby="a11y-panel-title"
         hidden={!open}
-        className="fixed z-40 overflow-y-auto rounded-xl border border-slate-300 bg-white p-4 text-slate-900 shadow-2xl"
+        className="fixed z-50 overflow-y-auto rounded-xl border border-slate-300 bg-white p-4 text-slate-900 shadow-2xl"
         style={{
           left: EDGE,
           bottom: `calc(${BOTTOM} + 56px)`,
