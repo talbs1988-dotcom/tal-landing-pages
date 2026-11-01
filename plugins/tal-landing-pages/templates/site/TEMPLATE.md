@@ -31,6 +31,7 @@
 
 - `<html lang="he" dir="rtl">` ב-`app/layout.tsx`.
 - הפונט Rubik נטען דרך `next/font` ומוגש מהאתר עצמו, בלי פנייה לגוגל מהדפדפן.
+- שני משתני פונט ב-`app/globals.css` (`@theme`): `--font-sans` לטקסט ו-`--font-heading` לכותרות. כל `h1`–`h4` באתר מקבלים את `--font-heading` מכלל אחד ב-`@layer base`, גם בחלקים הקבועים (דף התודה, הדפים המשפטיים, באנר העוגיות, 404). מחליפים פונט → מחליפים את שני המשתנים.
 - בדף יש טופס אחד בלבד עם `id="lead-form"`, וכפתורי הקריאה לפעולה גוללים אליו.
 - **דף שהפעולה בו היא קנייה:** `page.checkoutUrl` ב-config מלא (https) → כל כפתור בדף הוא קישור רגיל לדף התשלום החיצוני (`rel="noopener"`), ולא גולל לטופס. כל כפתור עובר דרך `components/CtaAction.tsx` (הלוגיקה ב-`lib/checkout.ts`, עם בדיקות), ולכן אין צורך לגעת בכל כפתור. ריק (ברירת המחדל) → דף לידים. הטופס נשאר בדף רק אם בעל העסק רוצה גם לידים. אם לא: מוציאים את `<LeadForm />` מ-`app/page.tsx`, ו-`collects.form` ל-`false`, כדי שמדיניות הפרטיות לא תתאר טופס שלא קיים.
 - סודות (טוקנים, כתובות וובהוק) רק במשתני סביבה, אף פעם לא בקוד.
@@ -136,8 +137,8 @@ npm run resend-leads -- ~/Downloads/leads             # שואל את כתובת
 
 | שלב            | עורך                                                                                       |
 | -------------- | ------------------------------------------------------------------------------------------ |
-| 3 עיצוב | `content/copy.json` (מתוך `2-copy/copy.md`), `app/page.tsx`, `components/sections/`, `brand` ו-`page` ב-`site.config.ts` |
-| 4 משפטי ונגישות | `business`, `collects` ו-`form` ב-`site.config.ts`, והדפים המשפטיים (`app/privacy` וכו') |
+| 3 עיצוב | `content/copy.json` (מתוך `2-copy/copy.md`), `app/page.tsx`, `components/sections/`, `brand` ו-`page` ב-`site.config.ts`, ומ-`form`: השדות (`email`, `phone`), `submitLabel` ו-`marketingConsentText`. **לא** `privacyNotice` |
+| 4 משפטי ונגישות | `business`, `legal` ו-`collects` ב-`site.config.ts`, `form.privacyNotice` (נקבע רק כאן), והדפים המשפטיים (`app/privacy` וכו') |
 | 5 בדיקה | לא עורך תוכן. מריץ `npm run check` (כולל `check:todo` ו-`build`) ובדיקה בדפדפן, ומתקן |
 | 6 עלייה לאוויר | הגדרות הפרויקט והדומיין ב-Vercel, ו-`page.url` ב-`site.config.ts` |
 | 7 חיבורים | `WEBHOOK_URL`, Blob ופיקסל: משתני סביבה ב-Vercel בלבד, לא בקוד |
@@ -146,7 +147,9 @@ npm run resend-leads -- ~/Downloads/leads             # שואל את כתובת
 
 ## הטופס, דף התודה והפוטר
 
-- `components/LeadForm.tsx`: הטופס היחיד בדף (`id="lead-form"`). זה רכיב שרת דק שעוטף את `components/LeadFormClient.tsx` (הטופס עצמו). מייבאים את `LeadForm` מדף או מסקשן שהם רכיבי שרת, לא מתוך קובץ עם `"use client"`. שדה הטלפון לפי `site.form.phone`. הטקסטים מה-config: `submitLabel`, `marketingConsentText`, `privacyNotice` (הם חלק מיידוע הפרטיות וההסכמה, ולכן לא במצב עריכה). הכותרת מעל הטופס: `form.title` ב-`copy.json`.
+- `components/LeadForm.tsx`: הטופס היחיד בדף (`id="lead-form"`). זה רכיב שרת דק שעוטף את `components/LeadFormClient.tsx` (הטופס עצמו). מייבאים את `LeadForm` מדף או מסקשן שהם רכיבי שרת, לא מתוך קובץ עם `"use client"`. הטקסטים מה-config: `submitLabel`, `marketingConsentText`, `privacyNotice` (הם חלק מיידוע הפרטיות וההסכמה, ולכן לא במצב עריכה). הכותרת מעל הטופס: `form.title` ב-`copy.json`.
+- **השדות:** שם תמיד. מייל לפי `site.form.email`, טלפון לפי `site.form.phone`: `"required"` חובה, `"optional"` רשות (עם "(לא חובה)"), `"hidden"` לא מוצג. ברירת המחדל: שניהם חובה. **לפחות אחד מהם מוצג:** שניהם `"hidden"` ← `LeadForm` זורק והבנייה נכשלת, ו-`check:todo` סופר את זה. שדה רשות לצד שדה מוסתר הוא חובה בפועל (`resolveFields` ב-`lib/lead.ts`). שניהם רשות ← צריך למלא לפחות אחד. הקליטה (`/api/lead`), CAPI (בלי מייל אין `em`), מדיניות הפרטיות ודף מחיקת הנתונים מזכירים רק את מה שהטופס באמת אוסף.
+- יידוע הפרטיות ליד הכפתור: 14px לפחות (`text-sm`). לא מקטינים אותו.
 - כל עוד `privacyNotice` לא מולא, מוצג יידוע פרטיות כללי עם `[למלא]` גלוי (לאן הפרטים מועברים). לא מסתירים טקסט משפטי חסר.
 - תיבת הדיוור נפרדת מיידוע הפרטיות, לא מסומנת, ולא חובה.
 - כש-CAPI פעיל (`siteCollects().capi`, כלומר `META_PIXEL_ID` תקין ו-`META_CAPI_TOKEN` בזמן הבנייה), יידוע הפרטיות מקבל אוטומטית משפט על העברת המייל והטלפון בצורה מוצפנת למטא, למדידת פרסום. גם כש-`privacyNotice` מולא. מדיניות הפרטיות ודף מחיקת הנתונים מזכירים את הדיווח מהשרת רק כשהוא פעיל.
@@ -171,8 +174,10 @@ npm run resend-leads -- ~/Downloads/leads             # שואל את כתובת
 | --- | --- |
 | `page.title`, `page.description` | SEO: לשונית הדפדפן וגוגל. לא מוצגים בדף. הכותרת הגדולה בדף היא `hero.title`, שורת המשנה `hero.subtitle` |
 | `page.ogTitle`, `page.ogSubtitle`, `page.url`, `page.lastUpdated` | תמונת השיתוף, הכתובת, ותאריך הדפים המשפטיים |
-| `business`, `legal`, `collects` | פרטים עסקיים ומשפטיים. הדפים המשפטיים והפוטר קוראים מהם. `legal.noticeAddress`: מען להודעות ביטול ולהחזרות (למשל ת"ד) כשאין לעסק כתובת פומבית. התקנון מציג אותו, ו-`check:todo` סופר אותו רק כש-`business.address` ריק |
-| `form` (כולל `submitLabel`, `marketingConsentText`, `privacyNotice`) | יידוע פרטיות והסכמה לדיוור הם טקסט משפטי, נבדקים בשלב 4 ולא נערכים מהדף |
+| `business`, `legal`, `collects` | פרטים עסקיים ומשפטיים. הדפים המשפטיים והפוטר קוראים מהם. `legal.noticeAddress`: מען להודעות ביטול ולהחזרות (למשל ת"ד) כשאין לעסק כתובת פומבית. התקנון מציג אותו, ו-`check:todo` סופר אותו רק כש-`business.address` ריק. `legal.offerType` (`"service"` / `"product"` / `"both"`, ברירת מחדל שירות): נוסח הביטול וההחזרה בתקנון. בשירות אין משפט על החזרת מוצר |
+| `form.email`, `form.phone` | אילו שדות בטופס. נקבעים בשלב 3, לפי "איך רוצים שיחזרו אלייך" באפיון |
+| `form.submitLabel`, `form.marketingConsentText` | טקסט הכפתור ותיבת ההסכמה. שלב 3 מעתיק אותם מהקופי, ושלב 4 בודק. לא נערכים מהדף. תיבת ההסכמה נשארת תמיד, גם בעסק בלי דיוור, עם נוסח שמתאים לערוץ |
+| `form.privacyNotice` | יידוע הפרטיות, טקסט משפטי בארבעה חלקים (מה נאסף, למה, לא חובה למסור, למי עובר). **נקבע רק בשלב 4 (`/page-legal`)**, לא בעיצוב. לא נערך מהדף |
 
 עברו מ-config ל-`copy.json` (וכבר לא קיימים ב-config): `page.ctaLabel` ← `hero.cta`, `page.thankYouNextSteps` ← `thankYou.body`. לכל טקסט יש מקור אחד בלבד.
 
@@ -256,7 +261,9 @@ npm test            # בדיקות
 npm run typecheck   # בדיקת טיפוסים
 ```
 
-`check:todo` סורק את `site.config.ts`, `content/` (כולל `copy.json`), `app/`, `components/`, `lib/` (בלי `lib/todo.ts`) וקבצי טקסט ב-`public/`. הוא סופר את הסימון `[למלא]` ואת `TODO` שמוצב כערך ב-`site.config.ts`. הוא גם בודק ערכים ב-config: `page.url` שמולא חייב להיות כתובת https מלאה (למשל `https://example.co.il`), אחרת מודפסת שורה בעברית והבדיקה נכשלת. (באתר עצמו `siteUrl` מוסיף `https://` לכתובת בלי סכמה, אבל ה-config צריך להיות נכון.) קוד שרק קורא ל-`isTodo(...)` לא נספר. הוא לא קורא קבצי סביבה.
+**הבדיקות ב-`tests/` עובדות גם בדף שמילאו** (מיתוג, כתובת, פרטי עסק, כל הקופי). בדיקה שמתאימה רק לתבנית הריקה מדלגת בדף ממולא (`PRISTINE` ב-`tests/templateState.ts`). **לא עורכים קבצים ב-`tests/` כדי שבדיקה תעבור.** בדיקה שנכשלת היא ממצא: מתקנים את הקוד שגרם לה, או מדווחים עליה (`/page-check`, ח).
+
+`check:todo` סורק את `site.config.ts`, `content/` (כולל `copy.json`), `app/`, `components/`, `lib/` (בלי `lib/todo.ts`) וקבצי טקסט ב-`public/`. הוא סופר את הסימון `[למלא]` ואת `TODO` שמוצב כערך ב-`site.config.ts`. הוא גם בודק ערכים ב-config: `page.url` שמולא חייב להיות כתובת https מלאה (למשל `https://example.co.il`), אחרת מודפסת שורה בעברית והבדיקה נכשלת. `form.email` ו-`form.phone` שניהם `"hidden"` ← גם זה נספר (אין בטופס דרך לחזור לליד). (באתר עצמו `siteUrl` מוסיף `https://` לכתובת בלי סכמה, אבל ה-config צריך להיות נכון.) קוד שרק קורא ל-`isTodo(...)` לא נספר. הוא לא קורא קבצי סביבה.
 
 ## `npm run check`: הבדיקות בלי דפדפן
 
