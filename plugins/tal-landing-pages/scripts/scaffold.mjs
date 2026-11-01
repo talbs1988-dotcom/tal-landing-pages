@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { mkdir, writeFile, readFile, readdir, access } from "node:fs/promises";
-import { join, dirname, resolve } from "node:path";
+import { mkdir, writeFile, readFile, readdir, access, cp } from "node:fs/promises";
+import { join, dirname, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 import { initStatus } from "./status.mjs";
@@ -191,10 +191,55 @@ export async function scaffoldPage(root, { pageName } = {}) {
   return dir;
 }
 
+// What never gets copied from the site template. `.env.example` is the one
+// `.env*` file that does (names only, no values).
+const SITE_TEMPLATE = join(TEMPLATES, "site");
+export function isExcludedFromSite(name) {
+  if (name === ".env.example") return false;
+  return (
+    name === "node_modules" ||
+    name === ".next" ||
+    name === ".vercel" ||
+    name === ".env" ||
+    name.startsWith(".env.") ||
+    name === "next-env.d.ts" ||
+    name === ".DS_Store" ||
+    name.endsWith(".tsbuildinfo")
+  );
+}
+
+// Copies templates/site/ into <pageDir>/site/. Never overwrites: a non-empty
+// site/ folder (a lone .gitkeep counts as empty) is an error and nothing is written.
+export async function scaffoldSite(pageDir, { templateDir = SITE_TEMPLATE } = {}) {
+  if (blank(pageDir)) throw new Error("חסרה תיקיית הדף");
+  const page = resolve(pageDir);
+  if (!(await exists(join(page, ".page", "status.json"))))
+    throw new Error(
+      `זו לא תיקיית דף: ${page}. תיקיית דף נוצרת עם /page ויש בה את .page/status.json.`,
+    );
+  if (!(await exists(join(templateDir, "package.json"))))
+    throw new Error(`לא נמצאה תבנית האתר: ${templateDir}`);
+  const site = join(page, "site");
+  const existing = (await readdir(site).catch(() => [])).filter(
+    (n) => n !== ".gitkeep",
+  );
+  if (existing.length > 0)
+    throw new Error(
+      `התיקייה site כבר לא ריקה, לא דורסים אותה: ${site}. כדי להתחיל מחדש צריך קודם למחוק אותה בעצמך.`,
+    );
+  await mkdir(site, { recursive: true });
+  await cp(templateDir, site, {
+    recursive: true,
+    filter: (src) => src === templateDir || !isExcludedFromSite(basename(src)),
+  });
+  return site;
+}
+
 const USAGE = [
   "שימוש:",
   "  scaffold.mjs business <תיקיית העסק> <שם העסק>",
   "  scaffold.mjs page <תיקיית העסק> <שם הדף>",
+  "  scaffold.mjs site <תיקיית הדף>",
   "  scaffold.mjs is-business <תיקייה>",
   "  scaffold.mjs find-root <תיקייה>",
   "  scaffold.mjs find-below <תיקייה>",
@@ -205,7 +250,7 @@ class UsageError extends Error {}
 async function cli([cmd, root, ...name]) {
   const value = name.join(" ");
   if (
-    !["business", "page", "is-business", "find-root", "find-below"].includes(cmd) ||
+    !["business", "page", "site", "is-business", "find-root", "find-below"].includes(cmd) ||
     blank(root)
   )
     throw new UsageError(USAGE);
@@ -213,6 +258,7 @@ async function cli([cmd, root, ...name]) {
     console.log(await scaffoldBusiness(root, { businessName: value }));
   else if (cmd === "page")
     console.log(await scaffoldPage(root, { pageName: value }));
+  else if (cmd === "site") console.log(await scaffoldSite(root));
   else if (cmd === "is-business") console.log(await isBusinessRoot(root));
   else if (cmd === "find-below")
     console.log(JSON.stringify(await findBusinessRootsBelow(root), null, 2));

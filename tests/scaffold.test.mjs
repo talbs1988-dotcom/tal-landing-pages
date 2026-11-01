@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import {
   scaffoldBusiness,
   scaffoldPage,
@@ -316,4 +316,71 @@ test("listPages flags a page with a corrupt or null status instead of crashing",
   const cli = spawnSync(process.execPath, [fileURLToPath(new URL("../plugins/tal-landing-pages/scripts/status.mjs", import.meta.url)), "list", root], { encoding: "utf8" });
   assert.equal(cli.status, 0, cli.stderr);
   assert.equal(JSON.parse(cli.stdout).length, 3);
+});
+
+// ---- scaffoldSite ----
+import { scaffoldSite } from "../plugins/tal-landing-pages/scripts/scaffold.mjs";
+import { cp, readdir } from "node:fs/promises";
+
+const REAL_TEMPLATE = fileURLToPath(
+  new URL("../plugins/tal-landing-pages/templates/site", import.meta.url),
+);
+const fileExists = (p) => stat(p).then(() => true, () => false);
+
+async function pageFixture() {
+  const root = await tmp();
+  await scaffoldBusiness(root, { businessName: "בדיקה" });
+  return scaffoldPage(root, { pageName: "דף" });
+}
+
+test("scaffoldSite copies the template into <page>/site", async () => {
+  const page = await pageFixture();
+  const site = await scaffoldSite(page);
+  assert.equal(site, join(page, "site"));
+  for (const f of ["package.json", "site.config.ts", "app/layout.tsx", ".env.example", "scripts/check-todo.mjs"])
+    assert.ok(await fileExists(join(site, f)), f);
+});
+
+test("scaffoldSite leaves out node_modules, build output, env files and junk", async () => {
+  const tpl = join(await tmp(), "site");
+  await cp(REAL_TEMPLATE, tpl, {
+    recursive: true,
+    filter: (s) => !s.split("/").includes("node_modules"),
+  });
+  const planted = [
+    "node_modules/x/index.js", ".next/cache/a", ".vercel/project.json",
+    ".env", ".env.local", ".env.production", "next-env.d.ts",
+    "tsconfig.tsbuildinfo", ".DS_Store", "app/.DS_Store",
+  ];
+  for (const f of planted) {
+    await mkdir(dirname(join(tpl, f)), { recursive: true });
+    await writeFile(join(tpl, f), "x");
+  }
+  const page = await pageFixture();
+  const site = await scaffoldSite(page, { templateDir: tpl });
+  for (const f of planted) assert.equal(await fileExists(join(site, f)), false, f);
+  assert.ok(await fileExists(join(site, ".env.example")));
+  assert.ok(await fileExists(join(site, "package.json")));
+});
+
+test("scaffoldSite refuses a non-empty site folder and writes nothing", async () => {
+  const page = await pageFixture();
+  await writeFile(join(page, "site", "mine.txt"), "שלי");
+  await assert.rejects(() => scaffoldSite(page), /לא ריקה/);
+  assert.deepEqual(await readdir(join(page, "site")), ["mine.txt"]);
+  assert.equal(await readFile(join(page, "site", "mine.txt"), "utf8"), "שלי");
+});
+
+test("scaffoldSite treats a lone .gitkeep as empty", async () => {
+  const page = await pageFixture();
+  await writeFile(join(page, "site", ".gitkeep"), "");
+  const site = await scaffoldSite(page);
+  assert.ok(await fileExists(join(site, "package.json")));
+  await assert.rejects(() => scaffoldSite(page), /לא ריקה/);
+});
+
+test("scaffoldSite refuses a folder that is not a page", async () => {
+  const dir = await tmp();
+  await assert.rejects(() => scaffoldSite(dir), /לא תיקיית דף/);
+  assert.equal(await fileExists(join(dir, "site")), false);
 });
