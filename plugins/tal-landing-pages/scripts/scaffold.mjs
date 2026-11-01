@@ -236,14 +236,21 @@ export async function scaffoldSite(pageDir, { templateDir = SITE_TEMPLATE } = {}
 }
 
 // The template files each stage starts from: [template name, path inside the
-// page folder]. Later stages add their entries here.
+// page folder]. The only placeholder they get is {{pageName}}; design.md and
+// references.md have none.
 export const STAGE_FILES = {
   brief: [
     ["brief.md", "1-brief/brief.md"],
     ["customer-words.md", "1-brief/customer-words.md"],
   ],
-  copy: [],
-  design: [],
+  copy: [
+    ["copy.md", "2-copy/copy.md"],
+    ["images-list.md", "2-copy/images-list.md"],
+  ],
+  design: [
+    ["design.md", "3-design/design.md"],
+    ["references.md", "3-design/references.md"],
+  ],
 };
 
 // Copies the stage's template files into the page folder. Never overwrites:

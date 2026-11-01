@@ -37,16 +37,9 @@
 יש שתי דרכים שבהן גולש אומר "בלי תנועה", וכל תנועה בדף מכבדת את שתיהן:
 
 1. **הגדרה של מערכת ההפעלה:** `prefers-reduced-motion: reduce`. `globals.css` של התבנית כבר מקצר לאפס כל `animation` ו-`transition` כשההגדרה פעילה.
-2. **"עצירת אנימציות" בכפתור הנגישות** של התבנית (`AccessibilityWidget`). לפי התוכנית של התבנית, כל מצב של הכפתור הוא class על `<html>`, ומוגדר ב-`globals.css`.
+2. **"עצירת אנימציות" בכפתור הנגישות** של התבנית (`AccessibilityWidget`). כשהגולש לוחץ עליו, הכפתור שם על `<html>` את ה-class `a11y-no-motion`, ו-`globals.css` של התבנית מקצר לאפס כל `animation` ו-`transition` כשהוא שם.
 
-**את השם המדויק של ה-class לא מנחשים.** מוצאים אותו בקוד:
-
-```bash
-grep -n "classList\|className" site/components/AccessibilityWidget.tsx
-grep -n "html\." site/app/globals.css
-```
-
-בדוגמאות כאן הוא מופיע כ-`STOP_CLASS`. מחליפים בשם האמיתי בכל מקום. אין עדיין `AccessibilityWidget.tsx` בעותק של האתר? כותבים רק את התנאי של `prefers-reduced-motion`, ורושמים ב-`3-design/design.md` תחת "פתוח".
+בכל הדוגמאות כאן ה-class כתוב בשמו האמיתי, `a11y-no-motion`. מעתיקים אותן כמו שהן.
 
 ### מה זה אומר בפועל
 
@@ -55,7 +48,7 @@ grep -n "html\." site/app/globals.css
 ```css
 @custom-variant motion-ok {
   @media (prefers-reduced-motion: no-preference) {
-    html:not(.STOP_CLASS) & {
+    html:not(.a11y-no-motion) & {
       @slot;
     }
   }
@@ -69,7 +62,7 @@ grep -n "html\." site/app/globals.css
 ```ts
 const noMotion =
   window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-  document.documentElement.classList.contains("STOP_CLASS");
+  document.documentElement.classList.contains("a11y-no-motion");
 ```
 
 - **`ScrollToFormButton`** בתבנית בודק היום רק את הגדרת המערכת. אם יש בעותק כפתור נגישות, מוסיפים לבדיקה שלו גם את ה-class, כדי שהגלילה לטופס תהיה מיידית גם למי שעצר אנימציות מהכפתור.
@@ -127,12 +120,12 @@ export function RevealOnScroll() {
 
 ```css
 @media (prefers-reduced-motion: no-preference) {
-  html.js-reveal:not(.STOP_CLASS) [data-reveal] {
+  html.js-reveal:not(.a11y-no-motion) [data-reveal] {
     transition:
       opacity 260ms cubic-bezier(0.22, 1, 0.36, 1),
       translate 260ms cubic-bezier(0.22, 1, 0.36, 1);
   }
-  html.js-reveal:not(.STOP_CLASS) [data-reveal]:not(.is-in) {
+  html.js-reveal:not(.a11y-no-motion) [data-reveal]:not(.is-in) {
     opacity: 0;
     translate: 0 12px;
   }
@@ -140,8 +133,8 @@ export function RevealOnScroll() {
 ```
 
 - לא שמים `data-reveal` על הפתיחה ולא על הסקשן של הטופס.
-- גולש שמפעיל "עצירת אנימציות" באמצע הגלילה: התנאי `:not(.STOP_CLASS)` מפסיק להתקיים, וכל מה שעוד לא נכנס מופיע מיד.
-- הרכיב והסגנון נבדקו בבנייה על התבנית (עם שם class לדוגמה).
+- גולש שמפעיל "עצירת אנימציות" באמצע הגלילה: התנאי `:not(.a11y-no-motion)` מפסיק להתקיים, וכל מה שעוד לא נכנס מופיע מיד.
+- הרכיב והסגנון נבדקו בבנייה על התבנית.
 
 **ספריית אנימציה ב-JavaScript** (כמו motion או GSAP) רק אם CSS באמת לא יכול. לפני שמוסיפים, עונים על כל השאלות, ורושמים את התשובות ב-`3-design/design.md`:
 
