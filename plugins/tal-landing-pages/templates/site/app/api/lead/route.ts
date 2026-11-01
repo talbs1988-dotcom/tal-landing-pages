@@ -1,10 +1,12 @@
 import { put } from "@vercel/blob";
+import { after } from "next/server";
 import { site } from "@/site.config";
 import { createBlobBackup } from "@/lib/backup";
 import { sendCapi } from "@/lib/capi";
 import { handleLead, type LeadEnv, type LogEntry } from "@/lib/handleLead";
 import { createRateLimiter } from "@/lib/rateLimit";
 import { readBodyLimited } from "@/lib/readBody";
+import { isAllowedOrigin } from "@/lib/origin";
 import { isFilled } from "@/lib/todo";
 import { siteUrl } from "@/lib/siteUrl";
 import { postWebhook } from "@/lib/webhook";
@@ -25,6 +27,7 @@ const MSG = {
   rate: "נשלחו יותר מדי ניסיונות. נא לנסות שוב בעוד דקה.",
   tooLarge: "הפרטים שנשלחו ארוכים מדי.",
   badRequest: "הפרטים לא נשלחו כמו שצריך. נא לרענן את הדף ולנסות שוב.",
+  forbidden: "לא ניתן לשלוח את הטופס מהכתובת הזו.",
 } as const;
 
 function reply(status: number, json: Record<string, unknown>) {
@@ -61,6 +64,19 @@ function env(): LeadEnv {
 
 export async function POST(request: Request) {
   const ip = clientIp(request.headers);
+
+  // שליחה מאתר אחר נחסמת. בלי כותרת Origin מאשרים (יש לקוחות שלא שולחים אותה)
+  if (
+    !isAllowedOrigin({
+      origin: request.headers.get("origin"),
+      host: request.headers.get("host"),
+      forwardedHost: request.headers.get("x-forwarded-host"),
+      siteUrl: site.page.url,
+    })
+  ) {
+    log({ event: "lead", result: "bad_origin" });
+    return reply(403, { ok: false, error: MSG.forbidden });
+  }
 
   if (!limiter.check(ip ?? "unknown")) {
     log({ event: "lead", result: "rate_limited" });
@@ -113,6 +129,9 @@ export async function POST(request: Request) {
       baseUrl,
     },
   );
+
+  // דיווח ההמרה למטא רץ אחרי שהתשובה נשלחה, כדי שהגולש לא יחכה
+  if (result.deferred) after(result.deferred);
 
   return reply(result.status, result.json);
 }

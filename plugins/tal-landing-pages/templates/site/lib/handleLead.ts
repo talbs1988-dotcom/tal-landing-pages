@@ -37,7 +37,7 @@ export type LogEntry = {
   status?: number;
 };
 
-type StepResult = "ok" | "failed" | "off";
+type StepResult = "ok" | "failed" | "off" | "deferred";
 
 export type HandleLeadDeps = {
   env: LeadEnv;
@@ -63,6 +63,11 @@ export type LeadContext = {
 export type HandleLeadResult = {
   status: number;
   json: Record<string, unknown>;
+  /**
+   * עבודה שרצה אחרי שהתשובה נשלחה (דיווח CAPI). ה-route מעביר אותה ל-after().
+   * לא זורקת. רושמת ללוג { event: "lead_capi", id, result }.
+   */
+  deferred?: () => Promise<void>;
 };
 
 /** הודעה כללית ללקוח. אף פעם לא חושפים את השגיאה הפנימית */
@@ -73,7 +78,8 @@ const filled = (v: string | undefined): v is string =>
 
 /**
  * קליטת ליד: ולידציה ← ספאם ← גיבוי ← וובהוק ← CAPI.
- * הצלחה אם הגיבוי או הוובהוק הצליחו. CAPI לא משפיע על התוצאה.
+ * הצלחה אם הגיבוי או הוובהוק הצליחו. CAPI לא משפיע על התוצאה,
+ * ורץ רק אחרי התשובה (deferred), כדי שהגולש לא יחכה למטא.
  */
 export async function handleLead(
   body: unknown,
@@ -146,12 +152,24 @@ export async function handleLead(
     return { status: 500, json: { ok: false, error: SERVER_ERROR } };
   }
 
-  let capi: StepResult = "off";
-  if (
+  const capiOn =
     v.lead.marketingConsent &&
     filled(env.META_PIXEL_ID) &&
-    filled(env.META_CAPI_TOKEN)
-  ) {
+    filled(env.META_CAPI_TOKEN);
+
+  log({
+    event: "lead",
+    id,
+    result: "saved",
+    backup,
+    webhook,
+    capi: capiOn ? "deferred" : "off",
+  });
+  const json = { ok: true, id, eventId: record.eventId };
+  if (!capiOn) return { status: 200, json };
+
+  const deferred = async () => {
+    let result: StepResult;
     try {
       const payload = buildCapiEvent(record, {
         sourceUrl: record.pageUrl,
@@ -161,12 +179,11 @@ export async function handleLead(
           : undefined,
       });
       const r = await deps.postCapi(payload);
-      capi = r.ok ? "ok" : "failed";
+      result = r.ok ? "ok" : "failed";
     } catch {
-      capi = "failed";
+      result = "failed";
     }
-  }
-
-  log({ event: "lead", id, result: "saved", backup, webhook, capi });
-  return { status: 200, json: { ok: true, id, eventId: record.eventId } };
+    log({ event: "lead_capi", id, result });
+  };
+  return { status: 200, json, deferred };
 }
