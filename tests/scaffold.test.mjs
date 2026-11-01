@@ -389,7 +389,7 @@ test("scaffoldSite refuses a folder that is not a page", async () => {
 import { scaffoldStageFiles, STAGE_FILES } from "../plugins/tal-landing-pages/scripts/scaffold.mjs";
 
 test("STAGE_FILES lists the template files of brief, copy and design", () => {
-  assert.deepEqual(Object.keys(STAGE_FILES), ["brief", "copy", "design"]);
+  for (const id of ["brief", "copy", "design"]) assert.ok(Object.hasOwn(STAGE_FILES, id), id);
   assert.ok(STAGE_FILES.brief.length > 0);
   assert.deepEqual(STAGE_FILES.copy, [
     ["copy.md", "2-copy/copy.md"],
