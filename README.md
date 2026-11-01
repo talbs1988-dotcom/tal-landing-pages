@@ -34,4 +34,4 @@
 
 ## קרדיטים
 
-הפלאגין מתקין כלים חיצוניים מהמקור שלהם, ברישיון שלהם: Playwright MCP (Microsoft, Apache 2.0), taste-skill (Leonxlnx, MIT), impeccable (pbakaus, Apache 2.0), skills (emilkowalski, MIT), skills (Vercel Labs, MIT).
+הפלאגין מתקין כלים חיצוניים מהמקור שלהם, ברישיון שלהם: Playwright MCP (Microsoft, Apache 2.0), taste-skill (Leonxlnx, MIT), impeccable (pbakaus, Apache 2.0), emil-design-eng (emilkowalski, MIT), ומתקין הסקילים skills (Vercel Labs, MIT).
