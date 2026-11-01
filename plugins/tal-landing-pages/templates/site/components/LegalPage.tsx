@@ -131,7 +131,8 @@ export function EmailLink({ email }: { email: string }) {
   return (
     <a
       href={`mailto:${email.trim()}`}
-      className="text-primary underline underline-offset-4"
+      // מייל ארוך נשבר לשורה חדשה ולא דוחף את הדף הצידה במובייל
+      className="text-primary underline underline-offset-4 [overflow-wrap:anywhere]"
       dir="ltr"
     >
       {email.trim()}
@@ -172,7 +173,7 @@ export function BusinessDetails() {
       {rows.map(([k, v]) => (
         <div key={k} className="contents">
           <dt className="font-semibold">{k}</dt>
-          <dd>{v}</dd>
+          <dd className="min-w-0">{v}</dd>
         </div>
       ))}
     </dl>

@@ -87,13 +87,13 @@ export default function AccessibilityPage() {
         <p>לפניות, שאלות והצעות בנושא נגישות אפשר לפנות לרכז/ת הנגישות:</p>
         <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 rounded-xl border border-black/15 bg-white p-5">
           <dt className="font-semibold">שם</dt>
-          <dd>{display(coord.name)}</dd>
+          <dd className="min-w-0">{display(coord.name)}</dd>
           <dt className="font-semibold">טלפון</dt>
-          <dd>
+          <dd className="min-w-0">
             <PhoneLink phone={coord.phone} />
           </dd>
           <dt className="font-semibold">מייל</dt>
-          <dd>
+          <dd className="min-w-0">
             <EmailLink email={coord.email} />
           </dd>
         </dl>

@@ -91,7 +91,7 @@ function Field(props: {
       <label htmlFor={props.id} className="mb-1.5 block font-medium">
         {props.label}
         {props.hint && (
-          <span className="font-normal opacity-70"> {props.hint}</span>
+          <span className="font-normal"> {props.hint}</span>
         )}
       </label>
       <input
@@ -343,7 +343,7 @@ export function LeadFormClient({ capi }: { capi: boolean }) {
         {submitting ? "שולחים…" : site.form.submitLabel}
       </button>
 
-      <p id={ids.privacy} className="text-xs leading-relaxed opacity-80">
+      <p id={ids.privacy} className="text-xs leading-relaxed">
         <PrivacyNotice capi={capi} />
       </p>
     </form>

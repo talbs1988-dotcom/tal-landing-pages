@@ -10,12 +10,21 @@ import {
   writeConsent,
   type ConsentChoice,
 } from "@/lib/consent";
+import {
+  bannerLayout,
+  closeFocusTarget,
+  focusTitleOnAutoOpen,
+} from "@/lib/banner";
 
 /*
  * באנר העוגיות. אסור להוריד אותו.
  * - מופיע אחרי כ-800ms רק אם עוד לא נשמרה בחירה. נפתח מחדש מכפתור "העדפות עוגיות" בפוטר.
  * - שלושה כפתורים בגודל ובבולטות זהים. דחייה לא מוסתרת ולא קטנה יותר.
- * - חלון לא-מודאלי בתחתית: הדף נשאר שמיש, והפוקוס עובר לכותרת כשהבאנר מופיע.
+ * - חלון לא-מודאלי בתחתית: הדף נשאר שמיש. כשהבאנר נפתח מכפתור, הפוקוס עובר לכותרת.
+ *   בפתיחה האוטומטית הפוקוס עובר לכותרת רק אם הוא לא היה בשום מקום (body): מי שכבר
+ *   מקליד בשדה נשאר בו. בסגירה הפוקוס חוזר לאלמנט הקודם (אם הוא עוד בדף), אחרת ל-main.
+ * - הבאנר לא גבוה מהמסך (גלילה פנימית), כפתור הנגישות תמיד נשאר בתוך המסך,
+ *   ו-scroll-padding-bottom גדל בזמן שהבאנר פתוח, כך ששדה בפוקוס לא מסתתר מאחוריו.
  * - Esc לא מסכים לשום דבר. אם כבר יש בחירה, Esc סוגר בלי לשנות.
  * - במובייל הבאנר בתחתית לכל הרוחב, ובדסקטופ בצד ימין.
  * - בזמן שהוא פתוח: לגוף הדף מתווסף מרווח תחתון בגובהו (כדי שאפשר לגלול לכל דבר),
@@ -27,8 +36,6 @@ const SHOW_DELAY_MS = 800;
 
 /** משתנה CSS על <html> שכפתור הנגישות קורא כדי לעלות מעל הבאנר */
 const BANNER_VAR = "--cookie-banner-height";
-/** רוחב הפינה השמאלית שבה יושב כפתור הנגישות (16px שוליים + 48px כפתור + מרווח) */
-const A11Y_CORNER_PX = 80;
 
 const button =
   "inline-flex min-h-11 w-full items-center justify-center rounded-lg border-2 border-primary bg-primary px-2 py-2 text-sm font-semibold text-white hover:brightness-110";
@@ -46,6 +53,8 @@ export function CookieBanner() {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
+  // האם להעביר את הפוקוס לכותרת כשהבאנר נפתח
+  const focusTitle = useRef(true);
 
   // פתיחה ראשונה: רק אם אין בחירה שמורה
   useEffect(() => {
@@ -54,7 +63,14 @@ export function CookieBanner() {
       return;
     }
     const t = window.setTimeout(() => {
-      returnFocus.current = null;
+      // לא גונבים פוקוס ממי שכבר בתוך הדף (למשל מקליד בשדה בטופס)
+      const active = document.activeElement;
+      const activeIsBody =
+        !(active instanceof HTMLElement) ||
+        active === document.body ||
+        active === document.documentElement;
+      returnFocus.current = activeIsBody ? null : (active as HTMLElement);
+      focusTitle.current = focusTitleOnAutoOpen({ activeIsBody });
       setDraft(REJECT_ALL);
       setCustomize(false);
       setOpen(true);
@@ -70,6 +86,7 @@ export function CookieBanner() {
         document.activeElement instanceof HTMLElement
           ? document.activeElement
           : null;
+      focusTitle.current = true;
       setHasChoice(Boolean(current));
       setDraft(
         current
@@ -83,9 +100,9 @@ export function CookieBanner() {
     return () => window.removeEventListener(CONSENT_REOPEN_EVENT, reopen);
   }, []);
 
-  // הפוקוס עובר לכותרת כשהבאנר נפתח
+  // הפוקוס עובר לכותרת כשהבאנר נפתח (בפתיחה אוטומטית: רק אם הוא היה על body)
   useEffect(() => {
-    if (open) titleRef.current?.focus();
+    if (open && focusTitle.current) titleRef.current?.focus();
   }, [open]);
 
   // מרווח בתחתית הדף בגובה הבאנר, כדי שאפשר לגלול לכל מה שמתחתיו (למשל כפתור הטופס)
@@ -95,13 +112,21 @@ export function CookieBanner() {
     const body = document.body;
     const root = document.documentElement;
     const previous = body.style.paddingBottom;
+    const previousScrollPadding = root.style.scrollPaddingBottom;
     const apply = () => {
       const rect = panel.getBoundingClientRect();
-      // כמה מקום הבאנר תופס מתחתית המסך (כולל רווח קטן)
-      const occupied = Math.ceil(window.innerHeight - rect.top + 8);
-      body.style.paddingBottom = `${occupied}px`;
-      // כפתור הנגישות (פינה שמאלית, ~80px) עולה מעל הבאנר רק כשהבאנר מגיע לפינה הזו
-      if (rect.left < A11Y_CORNER_PX) root.style.setProperty(BANNER_VAR, `${occupied}px`);
+      const l = bannerLayout({
+        innerHeight: window.innerHeight,
+        top: rect.top,
+        left: rect.left,
+      });
+      body.style.paddingBottom = `${l.occupied}px`;
+      // שדה שמקבל פוקוס נגלל אל מעל הבאנר
+      root.style.scrollPaddingBottom = `${l.scrollPadding}px`;
+      // כפתור הנגישות (פינה שמאלית) עולה מעל הבאנר רק כשהבאנר מגיע לפינה הזו,
+      // ולא יותר מהמסך (בבאנר גבוה הכפתור עולה עליו, אבל נשאר נגיש)
+      if (l.buttonLift !== null)
+        root.style.setProperty(BANNER_VAR, `${l.buttonLift}px`);
       else root.style.removeProperty(BANNER_VAR);
     };
     apply();
@@ -112,16 +137,24 @@ export function CookieBanner() {
       ro.disconnect();
       window.removeEventListener("resize", apply);
       body.style.paddingBottom = previous;
+      root.style.scrollPaddingBottom = previousScrollPadding;
       root.style.removeProperty(BANNER_VAR);
     };
   }, [open, customize]);
 
   function close() {
+    const active = document.activeElement;
+    const saved = returnFocus.current;
+    const target = closeFocusTarget({
+      inPanel: Boolean(active && panelRef.current?.contains(active)),
+      onBody: !active || active === document.body,
+      savedConnected: Boolean(saved?.isConnected),
+    });
     setOpen(false);
-    if (returnFocus.current) {
-      returnFocus.current.focus();
-    } else {
-      // נפתח לבד (לא מכפתור): מחזירים את הפוקוס לתחילת התוכן, כדי שה-Tab הבא
+    if (target === "saved" && saved) {
+      saved.focus({ preventScroll: true });
+    } else if (target === "main") {
+      // אין לאן לחזור: מחזירים את הפוקוס לתחילת התוכן, כדי שה-Tab הבא
       // ימשיך מהדף ולא מסוף העמוד (שם היה הבאנר)
       const main = document.getElementById("main");
       if (main) {
@@ -153,7 +186,7 @@ export function CookieBanner() {
       onKeyDown={(e) => {
         if (e.key === "Escape" && hasChoice) close();
       }}
-      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 mx-auto max-w-md rounded-2xl border border-black/15 bg-white p-4 text-sm shadow-xl sm:inset-x-auto sm:right-4 sm:bottom-[calc(env(safe-area-inset-bottom)+1rem)] sm:mx-0"
+      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 mx-auto max-h-[calc(100dvh-env(safe-area-inset-bottom)-1.5rem)] max-w-md overflow-y-auto overscroll-contain rounded-2xl border border-black/15 bg-white p-4 text-sm shadow-xl sm:inset-x-auto sm:right-4 sm:bottom-[calc(env(safe-area-inset-bottom)+1rem)] sm:mx-0 sm:max-h-[calc(100dvh-env(safe-area-inset-bottom)-2rem)]"
     >
       <h2
         ref={titleRef}

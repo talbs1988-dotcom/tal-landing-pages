@@ -142,3 +142,23 @@ export function a11yInitScript(): string {
     "}catch(e){}})();"
   );
 }
+
+type VideoLike = { paused: boolean; autoplay?: boolean; pause(): void };
+
+/**
+ * עוצר וידאו כשהגולש ביקש "עצירת אנימציות" (או שהמערכת מבקשת פחות תנועה).
+ * עוצר כל וידאו שמתנגן, וגם וידאו עם autoplay שעוד לא התחיל (pause() מבטל את ההפעלה האוטומטית).
+ * מחזיר כמה נעצרו. AccessibilityWidget קורא לזה בטעינה וכשמתווסף וידאו חדש לדף.
+ */
+export function pauseVideos(root: {
+  querySelectorAll(selector: string): Iterable<VideoLike> | ArrayLike<VideoLike>;
+}): number {
+  let n = 0;
+  for (const v of Array.from(root.querySelectorAll("video"))) {
+    if (!v.paused || v.autoplay) {
+      v.pause();
+      n++;
+    }
+  }
+  return n;
+}

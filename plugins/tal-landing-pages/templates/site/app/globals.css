@@ -36,6 +36,12 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* טקסט דוגמה בשדות: צבע מלא שעובר 4.5:1 על שדה לבן (4.83:1), ולא שקיפות של צבע הטקסט */
+  ::placeholder {
+    color: #6b7280;
+    opacity: 1;
+  }
+
   /* פוקוס גלוי לכל מי שמנווט במקלדת */
   :focus-visible {
     outline: 3px solid var(--brand-primary);
@@ -112,8 +118,10 @@ html.a11y-contrast a * {
 html.a11y-contrast :is(button, input, select, textarea) {
   border: 2px solid #fff !important;
 }
+/* טקסט דוגמה במצב ניגודיות: צבע אחר מהטקסט שהוקלד (לבן) ונטוי, כדי ששדה ריק לא ייראה מלא */
 html.a11y-contrast ::placeholder {
-  color: #d4d4d4 !important;
+  color: #7dd3fc !important;
+  font-style: italic;
   opacity: 1;
 }
 html.a11y-contrast [aria-pressed="true"],

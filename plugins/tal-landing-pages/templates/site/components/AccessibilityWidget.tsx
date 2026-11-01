@@ -9,7 +9,9 @@ import {
   applyPrefs,
   isDefaultPrefs,
   parsePrefs,
+  pauseVideos,
   serializePrefs,
+  shouldReduceMotion,
   type A11yPrefs,
   type TextLevel,
 } from "@/lib/a11y";
@@ -42,6 +44,11 @@ const BLUE = "#2563EB";
 const EDGE = "max(16px, env(safe-area-inset-left))";
 const BOTTOM =
   "calc(max(16px, env(safe-area-inset-bottom)) + var(--cookie-banner-height, 0px))";
+/*
+ * התפריט נפתח מעל הכפתור. כשהכפתור הורם גבוה (באנר גבוה בתחתית), התפריט יורד
+ * כך שיישארו לו לפחות 256px גובה. אז הוא עולה על הכפתור, ונסגר ב-× או ב-Esc.
+ */
+const PANEL_BOTTOM = `max(8px, min(calc(${BOTTOM} + 56px), calc(100dvh - 256px - 16px)))`;
 
 function readStored(): A11yPrefs {
   try {
@@ -81,6 +88,22 @@ export function AccessibilityWidget() {
     store(prefs);
   }, [prefs, loaded]);
 
+  // "עצירת אנימציות" (או הגדרת המערכת): עוצרים וידאו בטעינה, וגם וידאו שמתווסף אחר כך
+  useEffect(() => {
+    if (!loaded) return;
+    if (!prefs.noMotion && !shouldReduceMotion()) return;
+    pauseVideos(document);
+    const observer = new MutationObserver((records) => {
+      for (const r of records)
+        for (const node of r.addedNodes) {
+          if (node instanceof HTMLVideoElement) pauseVideos({ querySelectorAll: () => [node] });
+          else if (node instanceof Element) pauseVideos(node);
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [prefs.noMotion, loaded]);
+
   // בפתיחה: הפוקוס עובר לפקד הראשון בתפריט
   useEffect(() => {
     if (open) firstControlRef.current?.focus();
@@ -115,11 +138,6 @@ export function AccessibilityWidget() {
   function update(patch: Partial<A11yPrefs>) {
     setPrefs((p) => ({ ...p, ...patch }));
     setStatus("");
-    if (patch.noMotion) {
-      document.querySelectorAll("video").forEach((v) => {
-        if (!v.paused) v.pause();
-      });
-    }
   }
 
   function reset() {
@@ -176,9 +194,9 @@ export function AccessibilityWidget() {
         className="fixed z-50 overflow-y-auto rounded-xl border border-slate-300 bg-white p-4 text-slate-900 shadow-2xl"
         style={{
           left: EDGE,
-          bottom: `calc(${BOTTOM} + 56px)`,
+          bottom: PANEL_BOTTOM,
           width: "min(20rem, calc(100vw - 32px))",
-          maxHeight: `calc(100dvh - ${BOTTOM} - 72px)`,
+          maxHeight: `calc(100dvh - ${PANEL_BOTTOM} - 16px)`,
         }}
       >
         <div className="mb-3 flex items-center justify-between gap-2">
@@ -212,7 +230,7 @@ export function AccessibilityWidget() {
                   className={`flex min-h-11 flex-col items-center justify-center rounded-lg border-2 px-1 py-1 text-sm font-medium ${pressed ? on : off}`}
                 >
                   <span>{TEXT_LABELS[level]}</span>
-                  <span className="text-xs opacity-90">
+                  <span className="text-xs">
                     {TEXT_SIZES[level]}%
                   </span>
                 </button>

@@ -63,7 +63,7 @@ export function Footer() {
           </ul>
         </nav>
 
-        <div className="space-y-1 opacity-80">
+        <div className="space-y-1">
           <p>
             {business.legalName} · {business.type} · {idName}{" "}
             {business.idNumber}

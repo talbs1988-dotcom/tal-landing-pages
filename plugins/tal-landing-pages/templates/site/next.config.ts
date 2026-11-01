@@ -13,6 +13,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // next dev לא יוצר ולא מעדכן AGENTS.md בתיקיית הדף (ההוראות לקלוד ב-TEMPLATE.md)
+  agentRules: false,
   // התבנית מועתקת לתיקייה של כל דף, והשורש הוא תמיד התיקייה הזו
   turbopack: {
     root: import.meta.dirname,

@@ -119,3 +119,27 @@ describe("lib/a11y", () => {
     expect(runInit(null, true)).toEqual([]);
   });
 });
+
+describe("pauseVideos (עצירת אנימציות עוצרת גם וידאו)", () => {
+  it("עוצר כל וידאו שמתנגן, ולא נוגע בעצור", async () => {
+    const { pauseVideos } = await import("@/lib/a11y");
+    const make = (paused: boolean) => {
+      const v = { paused, calls: 0, pause() { this.calls++; this.paused = true; } };
+      return v;
+    };
+    const playing = make(false);
+    const stopped = make(true);
+    const root = { querySelectorAll: (s: string) => (s === "video" ? [playing, stopped] : []) };
+    expect(pauseVideos(root)).toBe(1);
+    expect(playing.paused).toBe(true);
+    expect(stopped.calls).toBe(0);
+  });
+
+  it("autoplay שעוד לא התחיל: pause() מבטל את ההפעלה האוטומטית", async () => {
+    const { pauseVideos } = await import("@/lib/a11y");
+    // וידאו עם autoplay שעדיין paused=true לפני שנטען: עדיין קוראים ל-pause()
+    const v = { paused: true, autoplay: true, calls: 0, pause() { this.calls++; } };
+    pauseVideos({ querySelectorAll: () => [v] });
+    expect(v.calls).toBe(1);
+  });
+});
