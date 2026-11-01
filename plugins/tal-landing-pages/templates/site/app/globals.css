@@ -54,3 +54,87 @@
     }
   }
 }
+
+/* ==========================================================================
+ * נגישות (משימה 5): מצבי כפתור הנגישות.
+ * כל מצב הוא class על <html> שהרכיב AccessibilityWidget שם (שמות ב-lib/a11y.ts).
+ * הבלוק הזה לא בתוך @layer, כדי שיגבר על כל עיצוב של סקשן.
+ * ========================================================================== */
+
+/* שום דבר שבפוקוס לא מסתתר מאחורי כפתור הנגישות שבתחתית */
+html {
+  scroll-padding-bottom: 88px;
+}
+
+/* גודל טקסט. Tailwind עובד ב-rem, אז כל הדף גדל יחד */
+html.a11y-text-115 {
+  font-size: 115%;
+}
+html.a11y-text-130 {
+  font-size: 130%;
+}
+
+/* עצירת אנימציות: אותו דבר כמו prefers-reduced-motion, אבל לפי בחירה בכפתור */
+html.a11y-no-motion,
+html.a11y-no-motion *,
+html.a11y-no-motion *::before,
+html.a11y-no-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* ניגודיות גבוהה: רקע שחור, טקסט לבן, קישורים צהובים (מעל 15:1) */
+html.a11y-contrast {
+  color-scheme: dark;
+  background-color: #000 !important;
+}
+html.a11y-contrast
+  :where(*:not(img, picture, video, canvas, iframe, svg, svg *)) {
+  background-color: #000 !important;
+  background-image: none !important;
+  color: #fff !important;
+  border-color: #fff !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+html.a11y-contrast a {
+  color: #ffff00 !important;
+  text-decoration-line: underline !important;
+}
+html.a11y-contrast a * {
+  color: inherit !important;
+  background-color: transparent !important;
+}
+html.a11y-contrast :is(button, input, select, textarea) {
+  border: 2px solid #fff !important;
+}
+html.a11y-contrast ::placeholder {
+  color: #d4d4d4 !important;
+  opacity: 1;
+}
+html.a11y-contrast [aria-pressed="true"],
+html.a11y-contrast [aria-pressed="true"] * {
+  background-color: #ffff00 !important;
+  color: #000 !important;
+}
+html.a11y-contrast :focus-visible {
+  outline: 3px solid #ffff00 !important;
+  outline-offset: 3px;
+}
+
+/* הדגשת קישורים: קו תחתון עבה ורקע צהוב עם טקסט שחור (מעל 15:1) */
+html.a11y-links a {
+  text-decoration-line: underline !important;
+  text-decoration-thickness: 0.15em !important;
+  text-underline-offset: 0.2em !important;
+  background-color: #fef08a !important;
+  color: #000 !important;
+}
+html.a11y-links a * {
+  color: inherit !important;
+  background-color: transparent !important;
+}

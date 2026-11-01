@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { shouldReduceMotion } from "@/lib/a11y";
 
 /**
  * כפתור שגולל לטופס (#lead-form) ומעביר אליו את הפוקוס,
@@ -18,9 +19,8 @@ export function ScrollToFormButton({
   function handleClick() {
     const target = document.getElementById(targetId);
     if (!target) return;
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    // גם הגדרת המערכת וגם "עצירת אנימציות" בכפתור הנגישות
+    const reduceMotion = shouldReduceMotion();
     target.scrollIntoView({
       behavior: reduceMotion ? "auto" : "smooth",
       block: "start",

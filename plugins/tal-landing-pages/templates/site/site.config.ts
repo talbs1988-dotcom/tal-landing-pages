@@ -114,6 +114,46 @@ export type SiteConfig = {
     /** כלי ניתוח תנועה (למשל Google Analytics) */
     analytics: boolean;
   };
+  /**
+   * פרטים שהדפים המשפטיים צריכים (פרטיות, תקנון, נגישות, מחיקת נתונים).
+   * ממלאים רק לפי מה שבעל העסק אמר. מה שלא ידוע נשאר TODO.
+   */
+  legal: {
+    /**
+     * לאן עוברים פרטי מי שהשאיר פרטים. שם הכלי בלבד (למשל "Make", "רב מסר", "Monday").
+     * אם העסק לא משתמש בכלי מסוג כזה: "" (מחרוזת ריקה), והשורה לא תופיע במדיניות.
+     */
+    processors: {
+      /** הכלי שמקבל את הליד מהאתר ומעביר הלאה (וובהוק). ברירת המחדל בסיסטם: Make */
+      automation: string;
+      /** מערכת הדיוור (מיילים, וואטסאפ) */
+      mailing: string;
+      /** איפה מנהלים את הלקוחות: CRM, טבלה או מסד נתונים */
+      crm: string;
+      /** כלי ניתוח התנועה. רלוונטי רק אם collects.analytics הוא true, אחרת "" */
+      analytics: string;
+    };
+    /**
+     * כמה זמן שומרים את פרטי הלידים.
+     * הצעה לבעל העסק: "עד 24 חודשים מהפנייה האחרונה, או עד שמבקשים מחיקה, המוקדם מביניהם".
+     */
+    retention: string;
+    /** תוך כמה זמן מטפלים בבקשת מחיקה. הצעה לבעל העסק: "30 ימים" */
+    deletionTimeframe: string;
+    /**
+     * מוצרים או שירותים של העסק שלא חלה עליהם זכות הביטול לפי החוק
+     * (למשל מוצר שיוצר במיוחד ללקוח, או תוכן דיגיטלי שאפשר להעתיק).
+     * אם אין כאלה: "אין".
+     */
+    cancellationExceptions: string;
+    /** רכיבים באתר שעדיין לא נגישים במלואם, ומה החלופה. אם לא ידוע על כאלה: "לא ידוע לנו על רכיבים כאלה" */
+    accessibilityLimitations: string;
+    /**
+     * הסדרי הנגישות במקום העסק (חניה, כניסה, שירותים). מופיע רק אם יש כתובת.
+     * אם אין קבלת קהל במקום: "אין קבלת קהל בכתובת העסק".
+     */
+    physicalAccessibility: string;
+  };
 };
 
 export const site: SiteConfig = {
@@ -162,5 +202,18 @@ export const site: SiteConfig = {
     form: true,
     pixel: false,
     analytics: false,
+  },
+  legal: {
+    processors: {
+      automation: TODO,
+      mailing: TODO,
+      crm: TODO,
+      analytics: "",
+    },
+    retention: TODO,
+    deletionTimeframe: TODO,
+    cancellationExceptions: TODO,
+    accessibilityLimitations: TODO,
+    physicalAccessibility: TODO,
   },
 };

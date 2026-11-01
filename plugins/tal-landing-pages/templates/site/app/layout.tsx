@@ -3,6 +3,9 @@ import type { CSSProperties, ReactNode } from "react";
 import { Rubik } from "next/font/google";
 import { site } from "@/site.config";
 import { siteUrl } from "@/lib/siteUrl";
+import { A11yInit } from "@/components/A11yInit";
+import { SkipLink } from "@/components/SkipLink";
+import { AccessibilityWidget } from "@/components/AccessibilityWidget";
 import "./globals.css";
 
 // הפונט נארז בזמן הבנייה ומוגש מהאתר עצמו. הדפדפן לא פונה לגוגל.
@@ -36,9 +39,19 @@ function brandVars(): CSSProperties {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="he" dir="rtl" className={rubik.variable} style={brandVars()}>
+    <html
+      lang="he"
+      dir="rtl"
+      className={rubik.variable}
+      style={brandVars()}
+      // A11yInit מוסיף class של נגישות ל-<html> לפני ש-React מתחבר
+      suppressHydrationWarning
+    >
       <body className="min-h-dvh antialiased">
+        <A11yInit />
+        <SkipLink />
         <main id="main">{children}</main>
+        <AccessibilityWidget />
       </body>
     </html>
   );
