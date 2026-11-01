@@ -251,6 +251,8 @@ export const STAGE_FILES = {
     ["design.md", "3-design/design.md"],
     ["references.md", "3-design/references.md"],
   ],
+  // live has no file of its own: the address goes to the status note and site.config.ts
+  connect: [["connections.md", "5-connect/connections.md"]],
 };
 
 // Copies the stage's template files into the page folder. Never overwrites:
