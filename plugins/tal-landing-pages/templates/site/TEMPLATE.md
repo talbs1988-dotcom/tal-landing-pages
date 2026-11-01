@@ -4,7 +4,8 @@
 
 ## הכלל הראשון: `site.config.ts` הוא מקור האמת
 
-כל פרט על העסק, הדף, המיתוג והטופס יושב ב-`site.config.ts`, ורק שם.
+כל פרט על העסק, הדף (SEO), המיתוג והטופס יושב ב-`site.config.ts`, ורק שם.
+הטקסטים השיווקיים שמוצגים בדף יושבים בקובץ אחר: `content/copy.json` (ראו "הטקסטים של הדף" למטה).
 הדפים המשפטיים, הפוטר, תמונת השיתוף והנתונים לגוגל קוראים ממנו.
 
 - לא מקלידים שם עסק, טלפון, מייל או כתובת ישירות בדף. משנים ב-config.
@@ -17,6 +18,7 @@
 | מה                         | איפה                                          |
 | -------------------------- | --------------------------------------------- |
 | פרטי העסק, הדף, הצבעים     | `site.config.ts`                              |
+| הטקסטים השיווקיים בדף      | `content/copy.json`                           |
 | הדף הראשי                  | `app/page.tsx`                                |
 | סקשנים של הדף              | `components/sections/`                        |
 | מבנה כללי (שפה, פונט, צבע) | `app/layout.tsx`, `app/globals.css`           |
@@ -96,7 +98,7 @@ POST עם `content-type: application/json`, עד 8 שניות לניסיון, ו
 
 | שלב            | עורך                                                                                       |
 | -------------- | ------------------------------------------------------------------------------------------ |
-| 3 עיצוב | `app/page.tsx`, `components/sections/`, `brand` ו-`page` ב-`site.config.ts` |
+| 3 עיצוב | `content/copy.json` (מתוך `2-copy/copy.md`), `app/page.tsx`, `components/sections/`, `brand` ו-`page` ב-`site.config.ts` |
 | 4 משפטי ונגישות | `business`, `collects` ו-`form` ב-`site.config.ts`, והדפים המשפטיים (`app/privacy` וכו') |
 | 5 בדיקה | לא עורך תוכן. מריץ `check:todo`, `build` ובדיקה בדפדפן, ומתקן |
 | 6 עלייה לאוויר | הגדרות הפרויקט והדומיין ב-Vercel, ו-`page.url` ב-`site.config.ts` |
@@ -106,13 +108,60 @@ POST עם `content-type: application/json`, עד 8 שניות לניסיון, ו
 
 ## הטופס, דף התודה והפוטר
 
-- `components/LeadForm.tsx`: הטופס היחיד בדף (`id="lead-form"`). שדה הטלפון לפי `site.form.phone`. הטקסטים מה-config: `submitLabel`, `marketingConsentText`, `privacyNotice`.
+- `components/LeadForm.tsx`: הטופס היחיד בדף (`id="lead-form"`). שדה הטלפון לפי `site.form.phone`. הטקסטים מה-config: `submitLabel`, `marketingConsentText`, `privacyNotice` (הם חלק מיידוע הפרטיות וההסכמה, ולכן לא במצב עריכה). הכותרת מעל הטופס: `form.title` ב-`copy.json`.
 - כל עוד `privacyNotice` לא מולא, מוצג יידוע פרטיות כללי עם `[למלא]` גלוי (לאן הפרטים מועברים). לא מסתירים טקסט משפטי חסר.
 - תיבת הדיוור נפרדת מיידוע הפרטיות, לא מסומנת, ולא חובה.
 - פנייה לפי קהל: `lib/copy.ts` (`pick(g(זכר, נקבה, רבים), site.audience)`). כל עוד הקהל לא הוגדר, פונים ברבים.
 - אחרי שליחה מוצלחת עוברים ל-`/thank-you?e=<eventId>` (בלי `e` אם השרת לא החזיר מזהה). דף התודה לא נכנס לגוגל.
-- הטקסט "מה קורה עכשיו" בדף התודה: `site.page.thankYouNextSteps`.
+- הכותרת והטקסט "מה קורה עכשיו" בדף התודה: `thankYou.title` ו-`thankYou.body` ב-`content/copy.json`.
 - `components/Footer.tsx`: קישורים משפטיים, "העדפות עוגיות" (שולח `cookie-consent-reopen`), יצירת קשר, ופרטי העסק מה-config. אסור להוריד.
+
+## הטקסטים של הדף: `content/copy.json`
+
+כל טקסט שיווקי שמוצג בדף (כותרות, תת-כותרות, כפתור הקריאה לפעולה, דף התודה, תיאורי תמונות) יושב ב-`content/copy.json`. לא מקלידים טקסט שיווקי ישירות ב-TSX.
+
+- **מבנה:** מפתחות שטוחים עם נקודה, `"<סקשן>.<שם>": "טקסט"`. למשל `hero.title`, `hero.subtitle`, `hero.cta`, `form.title`, `thankYou.title`, `thankYou.body`. תיאור תמונה (alt): `img.<שם>`. אותיות לטיניות וספרות בלבד במפתח. ערך שלא ידוע: `[למלא]` (נספר ב-`check:todo`).
+- **בקוד:** `t("hero.title")` מ-`lib/copyText.ts` מחזיר את הטקסט, או `[למלא]` אם הוא ריק. `alt("hero")` קורא את `img.hero`. המפתחות מוקלדים לפי הקובץ: מפתח שלא קיים הוא שגיאת טיפוסים.
+- **כל אלמנט טקסט שיווקי מקבל `{...editProps("מפתח")}`**, כדי שמצב העריכה יוכל לשנות אותו: `<h2 {...editProps("diagnosis.title")}>{t("diagnosis.title")}</h2>`. האלמנט צריך להכיל רק את הטקסט (בלי אייקונים או תגיות בפנים). טקסט בתוך כפתור או קישור עוטפים ב-`<span {...editProps(...)}>`.
+- **פסקה = מפתח.** הערך הוא שורה אחת (שמירה מכווצת רווחים ושורות). טקסט עם כמה פסקאות או בולטים מקבל מפתח לכל אחד: `diagnosis.body1`, `diagnosis.body2`, `offer.bullet1`…
+- **CTA אחד חוזר:** כל כפתורי הקריאה לפעולה בדף משתמשים באותו מפתח, `hero.cta`.
+
+### מה נשאר ב-`site.config.ts` ולמה
+
+| נשאר ב-config | למה |
+| --- | --- |
+| `page.title`, `page.description` | SEO: לשונית הדפדפן וגוגל. לא מוצגים בדף. הכותרת הגדולה בדף היא `hero.title`, שורת המשנה `hero.subtitle` |
+| `page.ogTitle`, `page.ogSubtitle`, `page.url`, `page.lastUpdated` | תמונת השיתוף, הכתובת, ותאריך הדפים המשפטיים |
+| `business`, `legal`, `collects` | פרטים עסקיים ומשפטיים. הדפים המשפטיים והפוטר קוראים מהם |
+| `form` (כולל `submitLabel`, `marketingConsentText`, `privacyNotice`) | יידוע פרטיות והסכמה לדיוור הם טקסט משפטי, נבדקים בשלב 4 ולא נערכים מהדף |
+
+עברו מ-config ל-`copy.json` (וכבר לא קיימים ב-config): `page.ctaLabel` ← `hero.cta`, `page.thankYouNextSteps` ← `thankYou.body`. לכל טקסט יש מקור אחד בלבד.
+
+טקסטים של ממשק (תוויות שדות בטופס, "שולחים…", "חזרה לדף הבית", דף 404, הודעות שגיאה) נשארים בקוד. הם לא קופי שיווקי.
+
+### איך שלב העיצוב ממלא את `copy.json`
+
+1. קוראים את `2-copy/copy.md` המאושר, סקשן אחרי סקשן.
+2. לכל טקסט בסקשן: מפתח בשם הסקשן והתפקיד (`problem.title`, `problem.body1`), והטקסט עצמו מילה במילה כמו שאושר. לא משכתבים בשלב הזה.
+3. מה שמסומן בקופי `[למלא]` נשאר `[למלא]`.
+4. תיאורי תמונות מ-`images-list.md` ← `img.<שם>`.
+5. עורכים את `copy.json` ב-JSON תקין, 2 רווחים, ומריצים `npm run typecheck` (תופס מפתח שהקוד מבקש ולא קיים).
+
+### סקשן חדש: איך מוסיפים מפתח
+
+1. מוסיפים ל-`content/copy.json` את המפתחות של הסקשן (`faq.title`, `faq.q1`, `faq.a1`…).
+2. ברכיב ב-`components/sections/`: `import { editProps, t } from "@/lib/copyText"`, ולכל אלמנט `{...editProps("faq.q1")}` + `{t("faq.q1")}`.
+3. `npm run typecheck` ו-`npm run check:todo`.
+
+### מצב עריכה (לבעל העסק)
+
+פותחים את הדף, לוחצים על "מצב עריכה", ומקלידים ישר על הטקסט.
+
+- עובד רק ב-`npm run dev`, במחשב. הכפתור בפינה הימנית העליונה. Enter או לחיצה מחוץ לטקסט שומרים ("נשמר ✓"), Esc מבטל.
+- השמירה כותבת ל-`content/copy.json` דרך `POST /api/dev-edit` (הלוגיקה ב-`lib/devEdit.ts`): רק מפתח שכבר קיים, טקסט בלבד עד 2,000 תווים, בלי תווים בלתי נראים, וכתיבה אטומית (קובץ זמני ואז `rename`) ששומרת על סדר המפתחות. טקסט שנמחק כולו נשמר כ-`[למלא]`.
+- בטיחות: הנתיב מקבל בקשות רק מאותו מקור ורק מ-`localhost`. בכל סביבה שאינה development (גם באתר באוויר) הוא מחזיר 404, והכפתור לא נכנס לבנייה בכלל (`components/DevEditMode.tsx` טוען אותו ב-import דינמי בתוך תנאי, ו-`editProps` לא מוסיף `data-edit` ל-HTML).
+- מה לא נערך כך: טקסטים מ-`site.config.ts` (טופס, משפטי, SEO) ותמונות. אותם משנים בקובץ.
+- **אחרי שינוי ב-`app/layout.tsx`:** לא להחליף את `<DevEditMode />` ב-import רגיל של `EditMode`. import סטטי מכניס את הרכיב לחבילה של האתר באוויר.
 
 ## עוגיות ופיקסל
 
@@ -164,7 +213,7 @@ npm test            # בדיקות
 npm run typecheck   # בדיקת טיפוסים
 ```
 
-`check:todo` סורק את `site.config.ts`, `app/`, `components/`, `lib/` (בלי `lib/todo.ts`) וקבצי טקסט ב-`public/`. הוא סופר את הסימון `[למלא]` ואת `TODO` שמוצב כערך ב-`site.config.ts`. קוד שרק קורא ל-`isTodo(...)` לא נספר. הוא לא קורא קבצי סביבה.
+`check:todo` סורק את `site.config.ts`, `content/` (כולל `copy.json`), `app/`, `components/`, `lib/` (בלי `lib/todo.ts`) וקבצי טקסט ב-`public/`. הוא סופר את הסימון `[למלא]` ואת `TODO` שמוצב כערך ב-`site.config.ts`. קוד שרק קורא ל-`isTodo(...)` לא נספר. הוא לא קורא קבצי סביבה.
 
 ## גוגל ותמונת שיתוף
 

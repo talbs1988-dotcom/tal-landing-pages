@@ -32,11 +32,9 @@ function full(
       url: "https://example.co.il",
       title: "המדריך לגיוס עובד ראשון",
       description: "איך מגייסים עובד בלי לשרוף כסף",
-      ctaLabel: "אני רוצה",
       ogTitle: "גיוס עובד בלי סיכון",
       ogSubtitle: "מדריך חינם לבעלי עסקים",
       lastUpdated: "2026-11-01",
-      thankYouNextSteps: "נחזור אליכם תוך יום עסקים",
       ...over.page,
     },
     business: {

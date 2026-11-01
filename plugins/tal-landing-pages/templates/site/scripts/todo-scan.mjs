@@ -4,7 +4,7 @@
  * לא קוראת קבצי סביבה (.env) בכלל.
  *
  * מה נספר:
- *  1. הסימון עצמו, [למלא], בכל קובץ טקסט שנסרק.
+ *  1. הסימון עצמו, [למלא], בכל קובץ טקסט שנסרק (כולל content/copy.json, הקופי של הדף).
  *  2. ב-site.config.ts בלבד: הערך TODO שמוצב בקוד (כי שם הוא כתוב כמשתנה ולא כטקסט).
  *     שורות הערה ושורות import לא נספרות.
  * קוד שרק משתמש ב-isTodo(...) או ב-isFilled(...) לא נספר.
@@ -13,7 +13,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, extname, sep } from "node:path";
 
 export const MARK = "[למלא]";
-export const TARGETS = ["site.config.ts", "app", "components", "lib", "public"];
+export const TARGETS = ["site.config.ts", "content", "app", "components", "lib", "public"];
 // lib/todo.ts מגדיר את הסימון עצמו
 const SKIP_FILES = new Set(["lib/todo.ts"]);
 const SKIP_DIRS = new Set(["node_modules", ".next", "tests"]);
