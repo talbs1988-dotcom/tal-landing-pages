@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectTracking, readCookie } from "@/lib/tracking";
+import { collectTracking, expiredCookies, readCookie } from "@/lib/tracking";
 
 describe("readCookie", () => {
   it("מוצא עוגייה לפי שם מדויק", () => {
@@ -86,5 +86,24 @@ describe("collectTracking", () => {
       referrer: "",
     });
     expect(t.landingPath).toBe("/lp");
+  });
+});
+
+describe("expiredCookies (ביטול הסכמה מוחק את _fbp ו-_fbc)", () => {
+  it("לכל עוגייה: בלי domain, ולכל דומיין-אב (שם הפיקסל שומר אותן)", () => {
+    const list = expiredCookies(["_fbp", "_fbc"], "www.example.co.il");
+    for (const name of ["_fbp", "_fbc"]) {
+      expect(list).toContain(`${name}=; Max-Age=0; path=/`);
+      expect(list).toContain(`${name}=; Max-Age=0; path=/; domain=www.example.co.il`);
+      expect(list).toContain(`${name}=; Max-Age=0; path=/; domain=example.co.il`);
+      expect(list).toContain(`${name}=; Max-Age=0; path=/; domain=co.il`);
+    }
+    // סיומת בודדת (il) אף פעם לא
+    expect(list.some((c) => c.endsWith("domain=il"))).toBe(false);
+  });
+
+  it("localhost או כתובת IP: רק בלי domain", () => {
+    expect(expiredCookies(["_fbp"], "localhost")).toEqual(["_fbp=; Max-Age=0; path=/"]);
+    expect(expiredCookies(["_fbp"], "127.0.0.1")).toEqual(["_fbp=; Max-Age=0; path=/"]);
   });
 });

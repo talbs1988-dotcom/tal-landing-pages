@@ -30,3 +30,16 @@ describe("LeadForm: ה-HTML מהשרת (לפני שהדף נטען)", () => {
     expect(button).toMatch(/\bdisabled=""/);
   });
 });
+
+describe("LeadForm: יידוע הפרטיות כש-CAPI פעיל", () => {
+  it("CAPI פעיל: משפט על העברת פרטים מוצפנים למטא למדידת פרסום", () => {
+    const html = ssr({ capi: true });
+    expect(html).toMatch(/מטא/);
+    expect(html).toMatch(/מוצפ/);
+    expect(html).toMatch(/מדידת/);
+  });
+
+  it("CAPI כבוי: לא מוזכרת מטא", () => {
+    expect(ssr({ capi: false })).not.toMatch(/מטא/);
+  });
+});

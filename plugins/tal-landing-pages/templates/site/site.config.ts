@@ -36,7 +36,8 @@ export type SiteConfig = {
     idNumber: string;
     /**
      * הכתובת של העסק. מופיעה בפוטר, בדפים המשפטיים ובנתונים לגוגל.
-     * אם לעסק אין כתובת פיזית לפרסום, למלא "" (מחרוזת ריקה) בכל שלושת השדות.
+     * אם לעסק אין כתובת פיזית לפרסום, למלא "" (מחרוזת ריקה) בכל שלושת השדות,
+     * ואז חובה למלא את legal.noticeAddress (מען להודעות ביטול ולהחזרות).
      */
     address: {
       /** רחוב ומספר */
@@ -157,6 +158,11 @@ export type SiteConfig = {
      * אם אין קבלת קהל במקום: "אין קבלת קהל בכתובת העסק".
      */
     physicalAccessibility: string;
+    /**
+     * מען למשלוח הודעות ביטול ולהחזרת מוצרים, כשאין לעסק כתובת פומבית (business.address ריק).
+     * למשל ת"ד או כתובת למשלוח. מופיע בתקנון. כשיש כתובת פומבית, התקנון משתמש בה והשדה הזה לא נחוץ.
+     */
+    noticeAddress: string;
   };
 };
 
@@ -218,5 +224,6 @@ export const site: SiteConfig = {
     cancellationExceptions: TODO,
     accessibilityLimitations: TODO,
     physicalAccessibility: TODO,
+    noticeAddress: TODO,
   },
 };

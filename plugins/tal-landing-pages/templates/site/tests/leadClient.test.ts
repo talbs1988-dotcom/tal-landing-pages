@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildLeadPayload,
   GENERIC_ERROR,
   interpretResponse,
   thankYouHref,
@@ -92,5 +93,62 @@ describe("thankYouHref", () => {
   it("בלי eventId או עם ערך לא תקין: בלי e", () => {
     expect(thankYouHref()).toBe("/thank-you");
     expect(thankYouHref("abc&x=1")).toBe("/thank-you");
+  });
+});
+
+describe("buildLeadPayload", () => {
+  const values = { name: "דנה", email: "d@example.co.il", phone: "0501234567", website: "" };
+  const tracking = {
+    utm_source: "facebook",
+    utm_medium: "",
+    utm_campaign: "",
+    utm_content: "",
+    utm_term: "",
+    fbclid: "IwAR1",
+    fbp: "fb.1.1.stale",
+    fbc: "fb.1.1.stale",
+    referrer: "",
+    landingPath: "/",
+  };
+  const cookie = "_fbp=fb.1.1700000000000.42; _fbc=fb.1.1700000000000.IwAR1";
+
+  it("עם הסכמה לעוגיות שיווק: cookieMarketing=true ומזהי העוגיות של מטא", () => {
+    const p = buildLeadPayload({
+      values,
+      marketingConsent: true,
+      eventId: EID,
+      tracking,
+      cookie,
+      cookieMarketing: true,
+    });
+    expect(p).toMatchObject({
+      name: "דנה",
+      marketingConsent: true,
+      cookieMarketing: true,
+      eventId: EID,
+    });
+    expect(p.tracking.fbp).toBe("fb.1.1700000000000.42");
+    expect(p.tracking.fbc).toBe("fb.1.1700000000000.IwAR1");
+    expect(p.tracking.utm_source).toBe("facebook");
+  });
+
+  it("בלי הסכמה לעוגיות שיווק (או בלי בחירה): cookieMarketing=false ובלי fbp/fbc, גם אם העוגיות קיימות", () => {
+    for (const cookieMarketing of [false, null, undefined]) {
+      const p = buildLeadPayload({
+        values,
+        marketingConsent: true,
+        eventId: EID,
+        tracking,
+        cookie,
+        cookieMarketing,
+      });
+      expect(p.cookieMarketing).toBe(false);
+      expect(p.tracking.fbp).toBe("");
+      expect(p.tracking.fbc).toBe("");
+      expect(JSON.stringify(p)).not.toContain("fb.1.");
+      // שאר מקור התנועה נשאר
+      expect(p.tracking.utm_source).toBe("facebook");
+      expect(p.tracking.fbclid).toBe("IwAR1");
+    }
   });
 });

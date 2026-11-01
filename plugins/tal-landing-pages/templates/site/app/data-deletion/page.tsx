@@ -14,6 +14,7 @@ import {
   LegalPage,
   PhoneLink,
   buildSections,
+  siteCollects,
 } from "@/components/LegalPage";
 
 // כותרת, תיאור, canonical ו-og:url משלו (lib/seo.ts)
@@ -30,6 +31,8 @@ export default function DataDeletionPage() {
   const name = display(business.displayName);
   const fields = listHe(collectedFields(form).map((f) => f.label));
   const p = legal.processors;
+  // הדיווח מהשרת למטא (CAPI) מוזכר רק כשהוא מוגדר
+  const capi = siteCollects().capi;
   const places = [
     "גיבוי הפניות של האתר",
     ...(p.automation !== ""
@@ -81,8 +84,15 @@ export default function DataDeletionPage() {
       <>
         <p>
           אם אישרתם עוגיות שיווק, הפיקסל של מטא שלח למטא מידע על הביקור שלכם
-          באתר. אם סימנתם בטופס הסכמה לדיוור, דיווחנו למטא גם על ההרשמה, עם
-          המייל והטלפון בהצפנה חד-כיוונית (hash). את המידע הזה מטא שומרת אצלה,
+          באתר.
+          {capi && (
+            <>
+              {" "}
+              אם סימנתם בטופס הסכמה לדיוור וגם אישרתם עוגיות שיווק, דיווחנו למטא
+              גם על ההרשמה, עם המייל והטלפון בהצפנה חד-כיוונית (hash).
+            </>
+          )}{" "}
+          את המידע הזה מטא שומרת אצלה,
           לפי{" "}
           <a
             href="https://www.facebook.com/privacy/policy/"

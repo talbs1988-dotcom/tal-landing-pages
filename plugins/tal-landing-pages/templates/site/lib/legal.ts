@@ -32,6 +32,15 @@ export function formatAddress(a: Address): string {
   return parts.join(", ");
 }
 
+/**
+ * המען למשלוח הודעות ביטול ולהחזרת מוצרים (לפי חובת הגילוי בעסקת מכר מרחוק).
+ * יש לעסק כתובת פומבית ← הכתובת. אין ← legal.noticeAddress (למשל ת"ד). חסר ← TODO גלוי.
+ */
+export function noticeAddress(a: Address, notice: string): string {
+  if (hasAddress(a)) return formatAddress(a);
+  return display(notice);
+}
+
 const ID_LABELS: Record<string, string> = {
   "עוסק פטור": "מס' עוסק",
   "עוסק מורשה": "מס' עוסק",
@@ -115,11 +124,25 @@ export type MetaEnv = {
  * כך מדיניות הפרטיות תמיד מזכירה את מטא כשהפיקסל או ה-CAPI באמת פעילים,
  * גם אם שכחו לסמן collects.pixel ב-config. (הדפים נבנים עם אותם משתנים שהפיקסל נטען איתם.)
  */
-export function effectiveCollects(c: Collects, env: MetaEnv): Collects {
+export function effectiveCollects(
+  c: Collects,
+  env: MetaEnv,
+): EffectiveCollects {
   const browserPixel = isValidPixelId(env.NEXT_PUBLIC_META_PIXEL_ID);
-  const serverCapi = isValidPixelId(env.META_PIXEL_ID) && isFilled(env.META_CAPI_TOKEN);
-  return { ...c, pixel: c.pixel || browserPixel || serverCapi };
+  const serverCapi =
+    isValidPixelId(env.META_PIXEL_ID) && isFilled(env.META_CAPI_TOKEN);
+  return {
+    ...c,
+    pixel: c.pixel || browserPixel || serverCapi,
+    capi: serverCapi,
+  };
 }
+
+/**
+ * מה האתר אוסף בפועל, ועוד capi: האם הדיווח מהשרת למטא (Conversions API) מוגדר
+ * (מזהה פיקסל תקין וטוקן). קובע את הפסקה על CAPI במדיניות ואת המשפט ביידוע שליד הטופס.
+ */
+export type EffectiveCollects = Collects & { capi: boolean };
 
 /** מה קובע אילו סעיפים מופיעים: מה האתר אוסף, והאם יש לעסק כתובת */
 export type SectionContext = Collects & { hasAddress: boolean };

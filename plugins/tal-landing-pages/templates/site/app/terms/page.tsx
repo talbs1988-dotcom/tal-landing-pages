@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { site } from "@/site.config";
-import { display, formatAddress, TERMS_SECTIONS, vatNote } from "@/lib/legal";
+import {
+  display,
+  hasAddress,
+  noticeAddress,
+  TERMS_SECTIONS,
+  vatNote,
+} from "@/lib/legal";
 import {
   Bullets,
   BusinessDetails,
@@ -25,13 +31,18 @@ const link = "text-primary underline underline-offset-4";
 export default function TermsPage() {
   const { business, legal } = site;
   const name = display(business.displayName);
-  const address = formatAddress(business.address);
+  // כתובת פומבית אם יש, אחרת המען להודעות ולהחזרות (legal.noticeAddress)
+  const mailAddress = noticeAddress(business.address, legal.noticeAddress);
+  const publicAddress = hasAddress(business.address);
 
   const sections = buildSections(TERMS_SECTIONS, {
     business: (
       <>
         <p>האתר מופעל על ידי:</p>
         <BusinessDetails />
+        {!publicAddress && (
+          <p>מען למשלוח הודעות ולהחזרת מוצרים: {mailAddress}</p>
+        )}
       </>
     ),
     use: (
@@ -108,7 +119,7 @@ export default function TermsPage() {
         <p>
           אם הביטול הוא בגלל פגם, אי-התאמה לפרטים שפורסמו, איחור באספקה או הפרה
           אחרת שלנו, לא ייגבו דמי ביטול, ונחזיר את כל הסכום. מוצר שקיבלתם יוחזר
-          לעסק{address ? <> ({address})</> : null}.
+          לעסק ({mailAddress}).
         </p>
 
         <h3 className="pt-2 text-xl font-semibold">על מה אי אפשר לבטל</h3>
@@ -121,7 +132,7 @@ export default function TermsPage() {
         <h3 className="pt-2 text-xl font-semibold">איך מבטלים</h3>
         <p>
           מודיעים לנו על הביטול בכתב במייל <EmailLink email={business.email} />,
-          או בטלפון <PhoneLink phone={business.phone} />. כתבו בהודעה את השם
+          או בטלפון <PhoneLink phone={business.phone} />, או בדואר ל{mailAddress}. כתבו בהודעה את השם
           המלא, את פרטי הקשר שמסרתם בהזמנה ומה רוצים לבטל. נאשר שקיבלנו את
           ההודעה.
         </p>

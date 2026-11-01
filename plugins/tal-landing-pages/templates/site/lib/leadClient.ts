@@ -1,4 +1,6 @@
 import { isUuid } from "@/lib/lead";
+import { metaCookies } from "@/lib/tracking";
+import type { TrackingKey } from "@/lib/utm";
 
 /**
  * פענוח התשובה של POST /api/lead בצד הדפדפן.
@@ -55,4 +57,31 @@ export function interpretResponse(
 /** לאן עוברים אחרי שליחה. e רק אם זה UUID תקין */
 export function thankYouHref(eventId?: string): string {
   return isUuid(eventId) ? `/thank-you?e=${eventId}` : "/thank-you";
+}
+
+/**
+ * גוף הבקשה ל-POST /api/lead.
+ * cookieMarketing: האם הגולש אישר עוגיות שיווק בבאנר (readConsent()?.marketing).
+ * השרת שולח CAPI רק כשגם הוא וגם תיבת הדיוור true.
+ * fbp/fbc (מזהי העוגיות של מטא) נשלחים רק עם הסכמה לעוגיות שיווק.
+ */
+export function buildLeadPayload(input: {
+  values: { name: string; email: string; phone: string; website: string };
+  marketingConsent: boolean;
+  eventId?: string;
+  tracking: Record<TrackingKey, string> | null;
+  cookie: string;
+  cookieMarketing: boolean | null | undefined;
+}) {
+  const cookieMarketing = input.cookieMarketing === true;
+  return {
+    ...input.values,
+    marketingConsent: input.marketingConsent,
+    cookieMarketing,
+    eventId: input.eventId,
+    tracking: {
+      ...input.tracking,
+      ...metaCookies(input.cookie, cookieMarketing),
+    },
+  };
 }

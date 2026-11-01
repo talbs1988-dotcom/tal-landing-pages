@@ -8,7 +8,9 @@
  *  2. ב-site.config.ts בלבד: הערך TODO שמוצב בקוד (כי שם הוא כתוב כמשתנה ולא כטקסט).
  *     שורות הערה ושורות import לא נספרות.
  *  3. ב-site.config.ts: בדיקות ערכים (configProblems), כל בעיה נספרת כחוסר אחד:
- *     page.url שמולא אבל אינו כתובת https תקינה.
+ *     page.url שמולא אבל אינו כתובת https תקינה, ו-legal.noticeAddress שחסר (TODO או "")
+ *     כשאין לעסק כתובת פומבית (שלושת שדות business.address הם ""). כשיש כתובת, או שהיא
+ *     עוד TODO, המען לא נספר.
  * קוד שרק משתמש ב-isTodo(...) או ב-isFilled(...) לא נספר.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -75,10 +77,22 @@ export function configProblems(lines) {
   const start = lines.findIndex((l) => /export\s+const\s+site\b/.test(l));
   if (start === -1) return out;
   let section = "";
+  const address = [];
+  let notice;
   for (let i = start; i < lines.length; i++) {
     const line = lines[i];
     const open = /^\s*(\w+)\s*:\s*\{/.exec(line);
     if (open && /^\s{2}\S/.test(line)) section = open[1];
+    if (section === "business") {
+      for (const k of ["street", "city", "postalCode"]) {
+        const v = literalValue(line, k);
+        if (v !== undefined) address.push(v);
+      }
+    }
+    if (section === "legal") {
+      const v = literalValue(line, "noticeAddress");
+      if (v !== undefined) notice = { line: i + 1, value: v };
+    }
     if (section === "page") {
       const url = literalValue(line, "url");
       if (url !== undefined && url !== null && !isHttpsUrl(url)) {
@@ -88,6 +102,17 @@ export function configProblems(lines) {
           count: 1,
         });
       }
+    }
+  }
+  const noPublicAddress = address.length > 0 && address.every((v) => v !== null && v.trim() === "");
+  if (notice && noPublicAddress) {
+    const missing = notice.value === null || notice.value.trim() === "" || notice.value.includes(MARK);
+    if (missing) {
+      out.push({
+        line: notice.line,
+        text: "legal.noticeAddress: אין לעסק כתובת פומבית, אז צריך מען למשלוח הודעות ביטול ולהחזרות (למשל ת\"ד)",
+        count: 1,
+      });
     }
   }
   return out;
@@ -116,7 +141,8 @@ export function scanForTodos(root) {
           const code = line
             .replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g, '""')
             .replace(/\/\/.*$/, "");
-          n += count(code, /\bTODO\b/g);
+          // noticeAddress נחוץ רק כשאין לעסק כתובת פומבית (נבדק ב-configProblems)
+          if (!/^\s*noticeAddress\s*:/.test(line)) n += count(code, /\bTODO\b/g);
         }
       }
       if (n > 0) hits.push({ file: rel, line: i + 1, text: line.trim(), count: n });

@@ -45,6 +45,40 @@ export function readCookie(cookie: string, name: string): string {
   return "";
 }
 
+/** מזהי העוגיות של מטא (_fbp, _fbc). רק כשהגולש אישר עוגיות שיווק, אחרת ריק */
+export function metaCookies(
+  cookie: string,
+  marketing: boolean,
+): { fbp: string; fbc: string } {
+  if (!marketing) return { fbp: "", fbc: "" };
+  return {
+    fbp: readCookie(cookie, "_fbp").slice(0, MAX),
+    fbc: readCookie(cookie, "_fbc").slice(0, MAX),
+  };
+}
+
+/** עוגיות של מטא שמוחקים כשהגולש מבטל הסכמה לשיווק */
+export const META_COOKIES = ["_fbp", "_fbc"] as const;
+
+/**
+ * מחרוזות document.cookie שמוחקות עוגיות: בלי domain (הדומיין הנוכחי),
+ * ועם כל דומיין-אב (הפיקסל שומר את _fbp על הדומיין הבסיסי, למשל .example.co.il).
+ * דומיין שהוא סיומת ציבורית (co.il) הדפדפן פשוט מתעלם ממנו.
+ */
+export function expiredCookies(names: readonly string[], hostname: string): string[] {
+  const base = "=; Max-Age=0; path=/";
+  const isIp = /^[\d.]+$/.test(hostname) || hostname.includes(":");
+  const labels = hostname.split(".");
+  const domains: string[] = [];
+  if (!isIp && labels.length >= 2) {
+    for (let i = 0; i <= labels.length - 2; i++) domains.push(labels.slice(i).join("."));
+  }
+  return names.flatMap((n) => [
+    `${n}${base}`,
+    ...domains.map((d) => `${n}${base}; domain=${d}`),
+  ]);
+}
+
 export function collectTracking(src: {
   search: string;
   pathname: string;

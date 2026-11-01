@@ -5,7 +5,7 @@ const off = { form: true, pixel: false, analytics: false };
 
 describe("effectiveCollects", () => {
   it("בלי משתני פיקסל: כמו ב-config", () => {
-    expect(effectiveCollects(off, {})).toEqual(off);
+    expect(effectiveCollects(off, {})).toEqual({ ...off, capi: false });
   });
 
   it("פיקסל בדפדפן מוגדר (מזהה תקין): pixel=true גם אם ב-config שכחו", () => {
@@ -50,6 +50,20 @@ describe("effectiveCollects", () => {
         NEXT_PUBLIC_META_PIXEL_ID: "123456789012345",
       },
     );
-    expect(r).toEqual({ form: false, pixel: true, analytics: true });
+    expect(r).toEqual({ form: false, pixel: true, analytics: true, capi: false });
+  });
+
+  it("capi=true רק כשה-CAPI מוגדר בשרת (מזהה תקין + טוקן)", () => {
+    expect(
+      effectiveCollects(off, { META_PIXEL_ID: "123456789012345", META_CAPI_TOKEN: "tok" })
+        .capi,
+    ).toBe(true);
+    expect(
+      effectiveCollects(off, { NEXT_PUBLIC_META_PIXEL_ID: "123456789012345" }).capi,
+    ).toBe(false);
+    expect(effectiveCollects({ ...off, pixel: true }, {}).capi).toBe(false);
+    expect(effectiveCollects(off, { META_PIXEL_ID: "abc", META_CAPI_TOKEN: "tok" }).capi).toBe(
+      false,
+    );
   });
 });

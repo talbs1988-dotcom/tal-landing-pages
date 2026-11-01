@@ -14,14 +14,16 @@ import {
 import { site } from "@/site.config";
 import { g, pick } from "@/lib/copy";
 import { validateLead } from "@/lib/lead";
+import { readConsent } from "@/lib/consent";
 import {
   NETWORK_ERROR,
+  buildLeadPayload,
   interpretResponse,
   thankYouHref,
   type FieldName,
 } from "@/lib/leadClient";
 import { TODO, isFilled } from "@/lib/todo";
-import { collectTracking, readCookie } from "@/lib/tracking";
+import { collectTracking } from "@/lib/tracking";
 import type { TrackingKey } from "@/lib/utm";
 
 /*
@@ -41,7 +43,15 @@ const audience = site.audience;
 const toYou = pick(g("אליך", "אלייך", "אליכם"), audience);
 const FIELD_ORDER: FieldName[] = ["name", "email", "phone"];
 
-function PrivacyNotice() {
+/**
+ * המשפט על מטא, כשהדיווח מהשרת (CAPI) פעיל. הוא נשלח רק עם תיבת הדיוור וגם עוגיות שיווק.
+ * מתווסף אוטומטית גם כש-privacyNotice ב-config כבר מולא.
+ */
+const CAPI_SENTENCE =
+  "סימון תיבת הדיוור, יחד עם אישור עוגיות שיווק, מעביר את המייל והטלפון בצורה מוצפנת (hash) למטא, למדידת הפרסום.";
+
+function PrivacyNotice({ capi }: { capi: boolean }) {
+  const meta = capi ? <> {CAPI_SENTENCE}</> : null;
   const policy = (
     <Link href="/privacy" className="font-medium underline underline-offset-2">
       מדיניות הפרטיות
@@ -50,7 +60,8 @@ function PrivacyNotice() {
   if (isFilled(site.form.privacyNotice)) {
     return (
       <>
-        {site.form.privacyNotice} לפרטים: {policy}.
+        {site.form.privacyNotice}
+        {meta} לפרטים: {policy}.
       </>
     );
   }
@@ -61,7 +72,7 @@ function PrivacyNotice() {
     <>
       {items} נאספים כדי לחזור {toYou} בנוגע לפנייה. המסירה אינה חובה לפי חוק,
       אבל בלי הפרטים לא נוכל לחזור {toYou}. הפרטים נשמרים אצל{" "}
-      {site.business.displayName} ומועברים גם ל-{TODO}. לפרטים: {policy}.
+      {site.business.displayName} ומועברים גם ל-{TODO}.{meta} לפרטים: {policy}.
     </>
   );
 }
@@ -104,7 +115,7 @@ function Field(props: {
   );
 }
 
-export function LeadFormClient(_props: { capi: boolean }) {
+export function LeadFormClient({ capi }: { capi: boolean }) {
   const router = useRouter();
   const uid = useId();
   const ids = {
@@ -184,17 +195,16 @@ export function LeadFormClient(_props: { capi: boolean }) {
     ) {
       eventId.current = crypto.randomUUID();
     }
-    // עוגיות של מטא נקראות ברגע השליחה (הן נוצרות רק אחרי הסכמה)
-    const cookie = document.cookie;
-    const payload = {
-      ...input,
+    // ההסכמה לעוגיות נקראת ברגע השליחה. בלי הסכמה לשיווק: בלי מזהי העוגיות של מטא,
+    // והשרת לא מדווח למטא (CAPI) גם אם סומנה תיבת הדיוור
+    const payload = buildLeadPayload({
+      values,
+      marketingConsent,
       eventId: eventId.current,
-      tracking: {
-        ...tracking.current,
-        fbp: readCookie(cookie, "_fbp"),
-        fbc: readCookie(cookie, "_fbc"),
-      },
-    };
+      tracking: tracking.current,
+      cookie: document.cookie,
+      cookieMarketing: readConsent()?.marketing,
+    });
 
     try {
       const res = await fetch("/api/lead", {
@@ -334,7 +344,7 @@ export function LeadFormClient(_props: { capi: boolean }) {
       </button>
 
       <p id={ids.privacy} className="text-xs leading-relaxed opacity-80">
-        <PrivacyNotice />
+        <PrivacyNotice capi={capi} />
       </p>
     </form>
   );

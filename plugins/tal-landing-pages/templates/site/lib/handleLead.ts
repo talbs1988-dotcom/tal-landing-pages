@@ -103,6 +103,8 @@ const filled = (v: string | undefined): v is string =>
 
 /**
  * קליטת ליד: ולידציה ← ספאם ← גיבוי ← וובהוק ← CAPI.
+ * CAPI נשלח רק כשהליד סימן את תיבת הדיוור וגם אישר עוגיות שיווק בדפדפן
+ * (cookieMarketing: true בגוף הבקשה).
  * הצלחה אם הגיבוי או הוובהוק הצליחו. CAPI לא משפיע על התוצאה,
  * ורץ רק אחרי התשובה (deferred), כדי שהגולש לא יחכה למטא.
  */
@@ -187,8 +189,10 @@ export async function handleLead(
     };
   }
 
+  // CAPI רק כשיש שתי הסכמות: תיבת הדיוור בטופס, וגם עוגיות שיווק בבאנר (נשלח מהדפדפן)
   const capiOn =
     v.lead.marketingConsent &&
+    data.cookieMarketing === true &&
     filled(env.META_PIXEL_ID) &&
     filled(env.META_CAPI_TOKEN);
 

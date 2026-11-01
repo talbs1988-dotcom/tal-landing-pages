@@ -141,5 +141,47 @@ describe("scanForTodos", () => {
     expect(r.total).toBe(1);
     expect(r.hits[0].text).toBe("url: TODO,");
   });
-});
 
+  const cfg = (street: string, notice: string) =>
+    [
+      "export const site = {",
+      "  business: {",
+      "    address: {",
+      `      street: ${street},`,
+      `      city: ${street},`,
+      `      postalCode: ${street},`,
+      "    },",
+      "  },",
+      "  legal: {",
+      `    noticeAddress: ${notice},`,
+      "  },",
+      "};",
+    ].join("\n");
+
+  it("noticeAddress נספר רק כשאין לעסק כתובת פומבית", () => {
+    // אין כתובת ("") ← המען חובה
+    let r = scanForTodos(fixture({ "site.config.ts": cfg('""', "TODO") }));
+    expect(r.total).toBe(1);
+    expect(r.hits[0].line).toBe(10);
+    // כתובת מלאה ← המען לא נחוץ
+    r = scanForTodos(fixture({ "site.config.ts": cfg('"הרצל 5"', "TODO") }));
+    expect(r.total).toBe(0);
+    // כתובת עוד לא מולאה ← רק שלושת שדות הכתובת נספרים
+    r = scanForTodos(fixture({ "site.config.ts": cfg("TODO", "TODO") }));
+    expect(r.total).toBe(3);
+    expect(r.hits.every((h: any) => h.line !== 10)).toBe(true);
+  });
+
+  it("אין כתובת והמען ריק: שורה בעברית ונספר", () => {
+    const r = scanForTodos(fixture({ "site.config.ts": cfg('""', '""') }));
+    expect(r.total).toBe(1);
+    expect(r.hits[0].line).toBe(10);
+    expect(r.hits[0].text).toMatch(/noticeAddress/);
+    expect(r.hits[0].text).toMatch(/[\u0590-\u05FF]/);
+  });
+
+  it("אין כתובת והמען מולא: אפס", () => {
+    const r = scanForTodos(fixture({ "site.config.ts": cfg('""', '"ת.ד. 123, חיפה"') }));
+    expect(r.total).toBe(0);
+  });
+});

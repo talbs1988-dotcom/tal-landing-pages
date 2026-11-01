@@ -15,6 +15,8 @@ const body = {
   email: "Dana.Cohen@Example.co.il",
   phone: "+972-52-765-4321",
   marketingConsent: true,
+  // הגולש אישר עוגיות שיווק בבאנר (readConsent().marketing)
+  cookieMarketing: true,
   website: "",
   eventId: CLIENT_EVENT_ID,
   tracking: {
@@ -308,6 +310,28 @@ describe("handleLead", () => {
     const deps = makeDeps(FULL_ENV);
     await run({ ...body, marketingConsent: false }, deps, ctx);
     expect(deps.postCapi).not.toHaveBeenCalled();
+  });
+
+  it("CAPI: לא נשלח כשהגולש דחה עוגיות שיווק, גם עם הסכמה לדיוור", async () => {
+    for (const cookieMarketing of [false, undefined, "true", 1]) {
+      const deps = makeDeps(FULL_ENV);
+      const r = await run({ ...body, cookieMarketing }, deps, ctx);
+      expect(r.status).toBe(200);
+      expect(r.deferred).toBeUndefined();
+      expect(deps.postCapi).not.toHaveBeenCalled();
+      expect(deps.log).toHaveBeenCalledWith(
+        expect.objectContaining({ event: "lead", result: "saved", capi: "off" }),
+      );
+    }
+  });
+
+  it("CAPI: נשלח רק כשיש גם דיוור וגם עוגיות שיווק", async () => {
+    const deps = makeDeps(FULL_ENV);
+    await run({ ...body, marketingConsent: true, cookieMarketing: true }, deps, ctx);
+    expect(deps.postCapi).toHaveBeenCalledTimes(1);
+    const noMail = makeDeps(FULL_ENV);
+    await run({ ...body, marketingConsent: false, cookieMarketing: true }, noMail, ctx);
+    expect(noMail.postCapi).not.toHaveBeenCalled();
   });
 
   it("CAPI: לא נשלח בלי טוקן או בלי פיקסל", async () => {

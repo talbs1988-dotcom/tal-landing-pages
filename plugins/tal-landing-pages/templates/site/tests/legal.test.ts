@@ -12,6 +12,7 @@ import {
   hasAddress,
   idLabel,
   listHe,
+  noticeAddress,
   parseIsoDate,
   vatNote,
   visibleSections,
@@ -160,5 +161,21 @@ describe("סעיפים מותנים", () => {
 
   it("בתקנון יש #cancellation (הפוטר והטופס מקשרים אליו)", () => {
     expect(ids(TERMS_SECTIONS)).toContain("cancellation");
+  });
+});
+
+describe("noticeAddress (מען להודעות ביטול ולהחזרות)", () => {
+  const empty = { street: "", city: "", postalCode: "" };
+  it("כשיש כתובת לעסק: הכתובת עצמה", () => {
+    expect(
+      noticeAddress({ street: "הרצל 5", city: "חיפה", postalCode: "" }, "ת\"ד 1, חיפה"),
+    ).toBe("הרצל 5, חיפה");
+  });
+  it("בלי כתובת פומבית: המען מ-legal.noticeAddress", () => {
+    expect(noticeAddress(empty, "ת\"ד 123, תל אביב")).toBe("ת\"ד 123, תל אביב");
+  });
+  it("בלי כתובת ובלי מען: TODO גלוי", () => {
+    expect(noticeAddress(empty, TODO)).toBe(TODO);
+    expect(noticeAddress(empty, "")).toBe(TODO);
   });
 });
