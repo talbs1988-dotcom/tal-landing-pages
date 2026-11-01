@@ -1,5 +1,6 @@
 import { site } from "@/site.config";
 import { ScrollToFormButton } from "@/components/ScrollToFormButton";
+import { LeadForm } from "@/components/LeadForm";
 
 /*
  * דף דוגמה מינימלי. שלב העיצוב מחליף את התוכן כאן ומוסיף סקשנים
@@ -22,18 +23,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* מקום לטופס הלידים. הטופס האמיתי (LeadForm) נכנס כאן. */}
-      <section
-        id="lead-form"
-        tabIndex={-1}
-        aria-labelledby="lead-form-title"
-        className="scroll-mt-6 px-4 py-16"
-      >
-        <div className="mx-auto max-w-xl rounded-2xl border border-black/10 bg-white p-8 text-center shadow-sm">
-          <h2 id="lead-form-title" className="text-2xl font-semibold">
+      {/* טופס הלידים. id="lead-form" נמצא על הטופס עצמו, והכפתורים בדף גוללים אליו */}
+      <section aria-labelledby="lead-form-title" className="px-4 py-16">
+        <div className="mx-auto max-w-xl rounded-2xl border border-black/10 bg-white p-6 shadow-sm sm:p-8">
+          <h2
+            id="lead-form-title"
+            className="mb-6 text-center text-2xl font-semibold"
+          >
             השארת פרטים
           </h2>
-          <p className="mt-3 opacity-75">הטופס יופיע כאן.</p>
+          <LeadForm />
         </div>
       </section>
     </>

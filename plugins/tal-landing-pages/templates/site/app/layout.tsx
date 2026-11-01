@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Rubik } from "next/font/google";
 import { site } from "@/site.config";
 import { siteUrl } from "@/lib/siteUrl";
+import { Footer } from "@/components/Footer";
 import "./globals.css";
 
 // הפונט נארז בזמן הבנייה ומוגש מהאתר עצמו. הדפדפן לא פונה לגוגל.
@@ -37,8 +38,11 @@ function brandVars(): CSSProperties {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="he" dir="rtl" className={rubik.variable} style={brandVars()}>
-      <body className="min-h-dvh antialiased">
-        <main id="main">{children}</main>
+      <body className="flex min-h-dvh flex-col antialiased">
+        <main id="main" className="flex-1">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
   );

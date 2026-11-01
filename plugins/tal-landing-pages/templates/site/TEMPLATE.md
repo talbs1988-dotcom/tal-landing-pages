@@ -91,6 +91,16 @@ POST עם `content-type: application/json`, עד 8 שניות לניסיון, ו
 | `META_PIXEL_ID`, `META_CAPI_TOKEN` | דיווח לידים מהשרת למטא (Conversions API)                         |
 | `META_CAPI_TEST_CODE`              | קוד בדיקה מ-Events Manager. רק בזמן בדיקה, למחוק אחרי            |
 
+## הטופס, דף התודה והפוטר
+
+- `components/LeadForm.tsx`: הטופס היחיד בדף (`id="lead-form"`). שדה הטלפון לפי `site.form.phone`. הטקסטים מה-config: `submitLabel`, `marketingConsentText`, `privacyNotice`.
+- כל עוד `privacyNotice` לא מולא, מוצג יידוע פרטיות כללי עם `[למלא]` גלוי (לאן הפרטים מועברים). לא מסתירים טקסט משפטי חסר.
+- תיבת הדיוור נפרדת מיידוע הפרטיות, לא מסומנת, ולא חובה.
+- פנייה לפי קהל: `lib/copy.ts` (`pick(g(זכר, נקבה, רבים), site.audience)`). כל עוד הקהל לא הוגדר, פונים ברבים.
+- אחרי שליחה מוצלחת עוברים ל-`/thank-you?e=<eventId>` (בלי `e` אם השרת לא החזיר מזהה). דף התודה לא נכנס לגוגל.
+- הטקסט "מה קורה עכשיו" בדף התודה: `site.page.thankYouNextSteps`.
+- `components/Footer.tsx`: קישורים משפטיים, "העדפות עוגיות" (שולח `cookie-consent-reopen`), יצירת קשר, ופרטי העסק מה-config. אסור להוריד.
+
 ## פקודות
 
 ```bash
