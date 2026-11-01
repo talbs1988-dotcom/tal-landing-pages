@@ -185,3 +185,11 @@ describe("scanForTodos", () => {
     expect(r.total).toBe(0);
   });
 });
+
+describe("התבנית עצמה", () => {
+  it("בקוד של התבנית (app, components, lib) אין [למלא]: רק ב-config וב-copy.json", () => {
+    const site = fileURLToPath(new URL("..", import.meta.url));
+    const files = new Set(scanForTodos(site).hits.map((h: { file: string }) => h.file));
+    expect([...files].sort()).toEqual(["content/copy.json", "site.config.ts"]);
+  });
+});
