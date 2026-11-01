@@ -134,7 +134,7 @@ npm run resend-leads -- ~/Downloads/leads <כתובת הוובהוק של Make> 
 | -------------- | ------------------------------------------------------------------------------------------ |
 | 3 עיצוב | `content/copy.json` (מתוך `2-copy/copy.md`), `app/page.tsx`, `components/sections/`, `brand` ו-`page` ב-`site.config.ts` |
 | 4 משפטי ונגישות | `business`, `collects` ו-`form` ב-`site.config.ts`, והדפים המשפטיים (`app/privacy` וכו') |
-| 5 בדיקה | לא עורך תוכן. מריץ `check:todo`, `build` ובדיקה בדפדפן, ומתקן |
+| 5 בדיקה | לא עורך תוכן. מריץ `npm run check` (כולל `check:todo` ו-`build`) ובדיקה בדפדפן, ומתקן |
 | 6 עלייה לאוויר | הגדרות הפרויקט והדומיין ב-Vercel, ו-`page.url` ב-`site.config.ts` |
 | 7 חיבורים | `WEBHOOK_URL`, Blob ופיקסל: משתני סביבה ב-Vercel בלבד, לא בקוד |
 
@@ -244,6 +244,7 @@ npm run resend-leads -- ~/Downloads/leads <כתובת הוובהוק של Make> 
 npm install         # פעם אחת
 npm run dev         # צפייה במחשב: http://localhost:3000
 npm run check:todo  # מה נשאר למלא (קובץ:שורה לכל חוסר, יוצא בקוד 1 אם נשאר משהו)
+npm run check       # כל הבדיקות בלי דפדפן, JSON אחד (ראו "npm run check" למטה)
 npm run resend-leads -- <תיקייה> <WEBHOOK_URL>  # שליחה מחדש של לידים מהגיבוי
 npm run build       # בנייה, כמו ב-Vercel
 npm test            # בדיקות
@@ -251,6 +252,24 @@ npm run typecheck   # בדיקת טיפוסים
 ```
 
 `check:todo` סורק את `site.config.ts`, `content/` (כולל `copy.json`), `app/`, `components/`, `lib/` (בלי `lib/todo.ts`) וקבצי טקסט ב-`public/`. הוא סופר את הסימון `[למלא]` ואת `TODO` שמוצב כערך ב-`site.config.ts`. הוא גם בודק ערכים ב-config: `page.url` שמולא חייב להיות כתובת https מלאה (למשל `https://example.co.il`), אחרת מודפסת שורה בעברית והבדיקה נכשלת. (באתר עצמו `siteUrl` מוסיף `https://` לכתובת בלי סכמה, אבל ה-config צריך להיות נכון.) קוד שרק קורא ל-`isTodo(...)` לא נספר. הוא לא קורא קבצי סביבה.
+
+## `npm run check`: הבדיקות בלי דפדפן
+
+`scripts/check-page.mjs` (הלוגיקה בפונקציות טהורות, בדיקות ב-`tests/check-page.test.ts`). `/page-check` מריץ אותו לפני הבדיקה בדפדפן. מדפיס JSON אחד: `{ ok, checks: [{ name, ok, required, details, items }] }`. `ok` של בדיקה: `true` עבר, `false` נכשל, `null` לא נבדק. קוד היציאה 1 כשבדיקת חובה נכשלה.
+
+| name | מה |
+| --- | --- |
+| `check:todo` | כמו `npm run check:todo`, בלי `page.url` שעוד `TODO` (הוא נקבע ב-`/page-live`) |
+| `page.url` | `TODO` ← לא נבדק, לא חובה. מולא ← חייב להיות https מלא |
+| `images` | `public/assets`: webp/avif/svg בלבד, `hero*` עד 200KB, השאר עד 100KB |
+| `copy.json` | בלי נקודה בסוף `*.title`, `*.cta`, `*.eyebrow`, `*.bullet*`. בלי מקף ארוך ומירכאות מסולסלות. בלי דפוסי AI מוכרים (ביטוי שמופיע ב-`brand/voice.md` של העסק לא נספר) |
+| `cta` | כל `*.cta` ו-`form.submitLabel` זהים, חוץ מהווריאציה שבטבלה בראש `2-copy/copy.md` |
+| `copy-scan` | `copy-scan.mjs` של הפלאגין על `../2-copy/copy.md`. הנתיב מועבר ב-`--copy-scan`, כי הסורק שייך לפלאגין ומתעדכן איתו. בלי הנתיב ← לא נבדק |
+| `tests`, `build` | `npm test`, `npm run build`. `--skip build,tests` מדלג (מסומן לא נבדק) |
+
+```bash
+npm run check -- --copy-scan '<הפלאגין>/scripts/copy-scan.mjs'
+```
 
 ## תמונות: `npm run images`
 

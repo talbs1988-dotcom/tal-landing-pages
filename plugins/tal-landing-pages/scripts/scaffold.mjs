@@ -252,6 +252,7 @@ export const STAGE_FILES = {
     ["design.md", "3-design/design.md"],
     ["references.md", "3-design/references.md"],
   ],
+  check: [["report.md", "4-checks/report.md"]],
   // live has no file of its own: the address goes to the status note and site.config.ts
   connect: [["connections.md", "5-connect/connections.md"]],
 };
@@ -293,7 +294,7 @@ const USAGE = [
   "  scaffold.mjs business <תיקיית העסק> <שם העסק>",
   "  scaffold.mjs page <תיקיית העסק> <שם הדף>",
   "  scaffold.mjs site <תיקיית הדף>",
-  "  scaffold.mjs stage-files <תיקיית הדף> <brief|copy|design>",
+  "  scaffold.mjs stage-files <תיקיית הדף> <brief|copy|design|check>",
   "  scaffold.mjs sync-business <תיקיית הדף>",
   "  scaffold.mjs is-business <תיקייה>",
   "  scaffold.mjs find-root <תיקייה>",
