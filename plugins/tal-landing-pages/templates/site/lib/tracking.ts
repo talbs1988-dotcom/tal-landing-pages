@@ -15,6 +15,22 @@ const URL_KEYS = [
   "fbclid",
 ] as const;
 
+/**
+ * שמות של שדות הטופס. אם הטופס נשלח בדרך הרגילה של הדפדפן (לפני שהדף סיים להיטען),
+ * הם עלולים להיכנס לכתובת. לא שומרים אותם בנתיב הנחיתה, כדי שפרטים אישיים
+ * לא יגיעו לגיבוי, ל-Make או למטא.
+ */
+const FORM_PARAMS = ["name", "email", "phone", "website", "marketingConsent"];
+
+/** הנתיב שבו הגולש נחת, בלי פרמטרים של שדות הטופס */
+function landingPath(pathname: string, search: string): string {
+  const params = new URLSearchParams(search);
+  if (!FORM_PARAMS.some((k) => params.has(k))) return pathname + search;
+  for (const k of FORM_PARAMS) params.delete(k);
+  const rest = params.toString();
+  return rest ? `${pathname}?${rest}` : pathname;
+}
+
 export function readCookie(cookie: string, name: string): string {
   for (const part of cookie.split(";")) {
     const i = part.indexOf("=");
@@ -45,6 +61,6 @@ export function collectTracking(src: {
     fbp: cut(readCookie(src.cookie, "_fbp")),
     fbc: cut(readCookie(src.cookie, "_fbc")),
     referrer: cut(src.referrer),
-    landingPath: cut(src.pathname + src.search),
+    landingPath: cut(landingPath(src.pathname, src.search)),
   };
 }

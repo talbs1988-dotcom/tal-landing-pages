@@ -76,6 +76,12 @@ describe("lib/siteUrl", () => {
     expect(siteUrl("javascript:alert(1)").href).toBe("http://localhost:3000/");
   });
 
+  it("כתובת בלי https:// מקבלת אותו אוטומטית", () => {
+    expect(siteUrl("www.example.co.il").href).toBe("https://www.example.co.il/");
+    expect(siteUrl("example.co.il").origin).toBe("https://example.co.il");
+    expect(siteUrl("  example.co.il/  ").origin).toBe("https://example.co.il");
+  });
+
   it("כתובת תקינה נשמרת", () => {
     expect(siteUrl("https://example.co.il").origin).toBe(
       "https://example.co.il",

@@ -19,8 +19,27 @@ export type LeadEnv = {
   META_CAPI_TOKEN?: string;
   /** קוד בדיקה מ-Events Manager. רק לבדיקות, להסיר אחרי שלב 7 */
   META_CAPI_TEST_CODE?: string;
-  /** "production" ב-Vercel בסביבת הייצור */
+  /**
+   * כתובת (רשות) שמקבלת התראה כשהוובהוק נכשל: מזהה הליד, התוצאה וקוד השגיאה בלבד.
+   * למשל תרחיש Make נפרד ששולח מייל לבעל העסק.
+   */
+  ALERT_WEBHOOK_URL?: string;
+  /** ב-Vercel: "production" או "preview" (ו-"development" ב-vercel dev במחשב) */
   VERCEL_ENV?: string;
+};
+
+/** ההתראה שנשלחת ל-ALERT_WEBHOOK_URL. בלי שום פרט אישי */
+export type AlertPayload = {
+  event: "lead_webhook_failed";
+  id: string;
+  createdAt: string;
+  /** saved = הליד נשמר בגיבוי בלבד. failed = לא נשמר בכלל, והגולש קיבל שגיאה */
+  result: "saved" | "failed";
+  backup: StepResult;
+  /** קוד ה-HTTP שהוובהוק החזיר. חסר כשלא הייתה תשובה (רשת, timeout) */
+  webhookStatus?: number;
+  /** הסבר קצר בעברית, למייל או להודעה */
+  message: string;
 };
 
 /**
@@ -37,7 +56,7 @@ export type LogEntry = {
   status?: number;
 };
 
-type StepResult = "ok" | "failed" | "off" | "deferred";
+export type StepResult = "ok" | "failed" | "off" | "deferred";
 
 export type HandleLeadDeps = {
   env: LeadEnv;
@@ -48,6 +67,11 @@ export type HandleLeadDeps = {
     payload: WebhookPayload,
   ) => Promise<{ ok: boolean; status?: number }>;
   postCapi: (payload: CapiPayload) => Promise<{ ok: boolean; status?: number }>;
+  /** שליחת ההתראה ל-ALERT_WEBHOOK_URL. בלי זה (או בלי הכתובת) אין התראה */
+  postAlert?: (
+    url: string,
+    payload: AlertPayload,
+  ) => Promise<{ ok: boolean; status?: number }>;
   now: () => Date;
   log: (entry: LogEntry) => void;
 };
@@ -64,8 +88,9 @@ export type HandleLeadResult = {
   status: number;
   json: Record<string, unknown>;
   /**
-   * עבודה שרצה אחרי שהתשובה נשלחה (דיווח CAPI). ה-route מעביר אותה ל-after().
-   * לא זורקת. רושמת ללוג { event: "lead_capi", id, result }.
+   * עבודה שרצה אחרי שהתשובה נשלחה (דיווח CAPI, התראה על וובהוק שנכשל).
+   * ה-route מעביר אותה ל-after(). לא זורקת.
+   * רושמת ללוג { event: "lead_capi" | "lead_alert", id, result }.
    */
   deferred?: () => Promise<void>;
 };
@@ -112,8 +137,9 @@ export async function handleLead(
   const webhookOn = filled(env.WEBHOOK_URL);
 
   if (!backupOn && !webhookOn) {
-    // בייצור ב-Vercel זו תקלת הגדרה: הליד היה הולך לאיבוד. לא מעמידים פנים שהצליח
-    if (env.VERCEL_ENV === "production") {
+    // ב-Vercel (production או preview) זו תקלת הגדרה: הליד היה הולך לאיבוד.
+    // לא מעמידים פנים שהצליח. מצב dev רק במחשב (כולל vercel dev)
+    if (filled(env.VERCEL_ENV) && env.VERCEL_ENV !== "development") {
       log({ event: "lead", id, result: "not_configured" });
       return { status: 500, json: { ok: false, error: SERVER_ERROR } };
     }
@@ -135,6 +161,7 @@ export async function handleLead(
   }
 
   let webhook: StepResult = "off";
+  let webhookStatus: number | undefined;
   if (webhookOn) {
     try {
       const r = await deps.postWebhook(
@@ -142,14 +169,22 @@ export async function handleLead(
         toWebhookPayload(record),
       );
       webhook = r.ok ? "ok" : "failed";
+      if (typeof r.status === "number") webhookStatus = r.status;
     } catch {
       webhook = "failed";
     }
   }
 
-  if (backup !== "ok" && webhook !== "ok") {
+  const saved = backup === "ok" || webhook === "ok";
+  const alert = webhook === "failed" ? alertTask(record, saved, backup, webhookStatus, deps) : undefined;
+
+  if (!saved) {
     log({ event: "lead", id, result: "failed", backup, webhook, capi: "off" });
-    return { status: 500, json: { ok: false, error: SERVER_ERROR } };
+    return {
+      status: 500,
+      json: { ok: false, error: SERVER_ERROR },
+      ...(alert && { deferred: alert }),
+    };
   }
 
   const capiOn =
@@ -166,9 +201,9 @@ export async function handleLead(
     capi: capiOn ? "deferred" : "off",
   });
   const json = { ok: true, id, eventId: record.eventId };
-  if (!capiOn) return { status: 200, json };
+  if (!capiOn) return { status: 200, json, ...(alert && { deferred: alert }) };
 
-  const deferred = async () => {
+  const capi = async () => {
     let result: StepResult;
     try {
       const payload = buildCapiEvent(record, {
@@ -185,5 +220,48 @@ export async function handleLead(
     }
     log({ event: "lead_capi", id, result });
   };
+  const deferred = alert
+    ? async () => {
+        await Promise.all([alert(), capi()]);
+      }
+    : capi;
   return { status: 200, json, deferred };
+}
+
+/**
+ * התראה על וובהוק שנכשל, אם ALERT_WEBHOOK_URL מוגדר. רצה אחרי התשובה. לא זורקת.
+ * בלי שם, מייל, טלפון או IP: רק מזהה, זמן, התוצאה וקוד השגיאה.
+ */
+function alertTask(
+  record: LeadRecord,
+  saved: boolean,
+  backup: StepResult,
+  webhookStatus: number | undefined,
+  deps: HandleLeadDeps,
+): (() => Promise<void>) | undefined {
+  const url = deps.env.ALERT_WEBHOOK_URL;
+  const post = deps.postAlert;
+  if (!filled(url) || !post) return undefined;
+  const code = webhookStatus === undefined ? "בלי תשובה" : `קוד ${webhookStatus}`;
+  const payload: AlertPayload = {
+    event: "lead_webhook_failed",
+    id: record.id,
+    createdAt: record.createdAt,
+    result: saved ? "saved" : "failed",
+    backup,
+    ...(webhookStatus !== undefined && { webhookStatus }),
+    message: saved
+      ? `ליד ${record.id} לא הגיע ל-Make (${code}). הוא שמור בגיבוי ב-Vercel Blob, תחת leads/. איך שולחים אותו מחדש: TEMPLATE.md, "ליד שלא הגיע ל-Make".`
+      : `ליד ${record.id} לא נשמר בכלל: גם הוובהוק (${code}) וגם הגיבוי נכשלו. הגולש קיבל הודעת שגיאה ויכול לנסות שוב.`,
+  };
+  return async () => {
+    let result: StepResult;
+    try {
+      const r = await post(url, payload);
+      result = r.ok ? "ok" : "failed";
+    } catch {
+      result = "failed";
+    }
+    deps.log({ event: "lead_alert", id: record.id, result });
+  };
 }

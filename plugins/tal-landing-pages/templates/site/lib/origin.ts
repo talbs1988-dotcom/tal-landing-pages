@@ -1,4 +1,5 @@
 import { isFilled } from "@/lib/todo";
+import { withScheme } from "@/lib/siteUrl";
 
 /**
  * בדיקת מקור הבקשה לטופס.
@@ -32,7 +33,7 @@ export function isAllowedOrigin(opts: {
   add(opts.forwardedHost?.split(",")[0]);
   if (isFilled(opts.siteUrl)) {
     try {
-      add(new URL(opts.siteUrl).host);
+      add(new URL(withScheme(opts.siteUrl)).host);
     } catch {
       // כתובת לא תקינה ב-config: מתעלמים
     }

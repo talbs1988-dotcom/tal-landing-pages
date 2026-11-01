@@ -58,6 +58,7 @@ function env(): LeadEnv {
     META_PIXEL_ID: e.META_PIXEL_ID,
     META_CAPI_TOKEN: e.META_CAPI_TOKEN,
     META_CAPI_TEST_CODE: e.META_CAPI_TEST_CODE,
+    ALERT_WEBHOOK_URL: e.ALERT_WEBHOOK_URL,
     VERCEL_ENV: e.VERCEL_ENV,
   };
 }
@@ -115,6 +116,8 @@ export async function POST(request: Request) {
       form: site.form,
       backup: createBlobBackup(put),
       postWebhook: (url, payload) => postWebhook(url, payload),
+      // התראה: ניסיון אחד בלבד, היא רצה אחרי התשובה ולא מעכבת אף אחד
+      postAlert: (url, payload) => postWebhook(url, payload, { retries: 0 }),
       postCapi: (payload) =>
         sendCapi(payload, {
           pixelId: e.META_PIXEL_ID ?? "",
@@ -130,7 +133,7 @@ export async function POST(request: Request) {
     },
   );
 
-  // דיווח ההמרה למטא רץ אחרי שהתשובה נשלחה, כדי שהגולש לא יחכה
+  // דיווח ההמרה למטא והתראה על וובהוק שנכשל רצים אחרי שהתשובה נשלחה, כדי שהגולש לא יחכה
   if (result.deferred) after(result.deferred);
 
   return reply(result.status, result.json);

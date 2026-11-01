@@ -63,4 +63,28 @@ describe("collectTracking", () => {
     expect(t.referrer.length).toBe(300);
     expect(t.landingPath.length).toBe(300);
   });
+
+  it("פרטים אישיים שנכנסו לכתובת (שליחה לפני שהדף נטען) לא נשמרים בנתיב", () => {
+    const t = collectTracking({
+      search:
+        "?utm_source=facebook&name=%D7%93%D7%A0%D7%94&email=dana%40example.co.il&phone=050-1234567&website=&marketingConsent=on&utm_campaign=nov",
+      pathname: "/",
+      cookie: "",
+      referrer: "",
+    });
+    expect(t.landingPath).toBe("/?utm_source=facebook&utm_campaign=nov");
+    expect(t.landingPath).not.toMatch(/dana|1234567|name=|email=|phone=|website=/);
+    expect(t.utm_source).toBe("facebook");
+    expect(t.utm_campaign).toBe("nov");
+  });
+
+  it("כשנשארים רק פרמטרים אישיים, הנתיב בלי סימן שאלה", () => {
+    const t = collectTracking({
+      search: "?name=x&email=y%40z.co&phone=1",
+      pathname: "/lp",
+      cookie: "",
+      referrer: "",
+    });
+    expect(t.landingPath).toBe("/lp");
+  });
 });

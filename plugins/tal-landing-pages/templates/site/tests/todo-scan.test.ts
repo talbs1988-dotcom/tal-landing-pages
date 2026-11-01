@@ -106,4 +106,40 @@ describe("scanForTodos", () => {
   it("תיקייה ריקה או חסרה נותנת אפס", () => {
     expect(scanForTodos(fixture({ "README.md": "x" })).total).toBe(0);
   });
+
+  it("page.url ממולא בלי https תקין: שורה בעברית ונספר כחוסר", () => {
+    for (const bad of ['"www.example.co.il"', '"http://example.co.il"', '"https://"', '""']) {
+      const root = fixture({
+        "site.config.ts": [
+          "export const site = {",
+          "  page: {",
+          `    url: ${bad},`,
+          '    title: "x",',
+          "  },",
+          "};",
+        ].join("\n"),
+      });
+      const r = scanForTodos(root);
+      expect(r.total).toBe(1);
+      expect(r.hits[0].file).toBe("site.config.ts");
+      expect(r.hits[0].line).toBe(3);
+      expect(r.hits[0].text).toMatch(/page\.url/);
+      expect(r.hits[0].text).toMatch(/https/);
+      expect(r.hits[0].text).toMatch(/[\u0590-\u05FF]/);
+    }
+  });
+
+  it("page.url תקין או TODO: אין שורה נוספת", () => {
+    const ok = fixture({
+      "site.config.ts": 'export const site = {\n  page: {\n    url: "https://example.co.il",\n  },\n};\n',
+    });
+    expect(scanForTodos(ok).total).toBe(0);
+    const todo = fixture({
+      "site.config.ts": "export const site = {\n  page: {\n    url: TODO,\n  },\n};\n",
+    });
+    const r = scanForTodos(todo);
+    expect(r.total).toBe(1);
+    expect(r.hits[0].text).toBe("url: TODO,");
+  });
 });
+

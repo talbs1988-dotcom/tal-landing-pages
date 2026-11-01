@@ -34,7 +34,7 @@ const FULL_ENV: LeadEnv = {
 };
 
 type Overrides = Partial<
-  Record<"backup" | "postWebhook" | "postCapi", unknown>
+  Record<"backup" | "postWebhook" | "postCapi" | "postAlert", unknown>
 >;
 
 function makeDeps(env: LeadEnv, over: Overrides = {}) {
@@ -133,6 +133,24 @@ describe("handleLead", () => {
     expect(r.status).toBe(500);
     expect(r.json.ok).toBe(false);
     expect(String(r.json.error)).toMatch(HEBREW);
+  });
+
+  it("בלי הגדרות ב-Vercel preview: 500, לא מצב dev", async () => {
+    const deps = makeDeps({ VERCEL_ENV: "preview" });
+    const r = await run(body, deps, ctx);
+    expect(r.status).toBe(500);
+    expect(r.json.ok).toBe(false);
+    expect(r.json).not.toHaveProperty("mode");
+    expect(deps.log).toHaveBeenCalledWith(
+      expect.objectContaining({ result: "not_configured" }),
+    );
+  });
+
+  it("vercel dev במחשב (VERCEL_ENV=development): נשאר מצב dev", async () => {
+    const deps = makeDeps({ VERCEL_ENV: "development" });
+    const r = await run(body, deps, ctx);
+    expect(r.status).toBe(200);
+    expect(r.json.mode).toBe("dev");
   });
 
   it("קלט לא תקין: 400 עם שגיאות בעברית, בלי לשמור", async () => {
@@ -378,3 +396,99 @@ describe("handleLead", () => {
     }
   });
 });
+
+describe("handleLead: התראה כשהוובהוק נכשל (ALERT_WEBHOOK_URL)", () => {
+  const ALERT = "https://alert.example/xyz";
+  const failingHook = () => vi.fn(async () => ({ ok: false, status: 410 }));
+
+  it("וובהוק נכשל והגיבוי הצליח: 200, ואחרי התשובה יוצאת התראה עם מזהה, תוצאה וקוד בלבד", async () => {
+    const postAlert = vi.fn(async () => ({ ok: true }));
+    const deps = makeDeps(
+      { ...FULL_ENV, ALERT_WEBHOOK_URL: ALERT },
+      { postWebhook: failingHook(), postAlert },
+    );
+    const r = await handleLead(body, deps, ctx);
+    expect(r.status).toBe(200);
+    expect(postAlert).not.toHaveBeenCalled();
+    await r.deferred?.();
+    expect(postAlert).toHaveBeenCalledTimes(1);
+    const [url, payload] = postAlert.mock.calls[0] as unknown as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(url).toBe(ALERT);
+    expect(payload).toMatchObject({
+      event: "lead_webhook_failed",
+      id: r.json.id,
+      result: "saved",
+      backup: "ok",
+      webhookStatus: 410,
+    });
+    expect(String(payload.message)).toMatch(HEBREW);
+    const text = JSON.stringify(payload);
+    for (const s of ["דנה", "dana", "Dana", "0527654321", "example.co.il", IP, "hook.example"])
+      expect(text).not.toContain(s);
+    expect(deps.log).toHaveBeenCalledWith({
+      event: "lead_alert",
+      id: r.json.id,
+      result: "ok",
+    });
+  });
+
+  it("גם כששניהם נכשלו (500) יוצאת התראה, עם result=failed", async () => {
+    const postAlert = vi.fn(async () => ({ ok: true }));
+    const deps = makeDeps(
+      { ...FULL_ENV, ALERT_WEBHOOK_URL: ALERT },
+      {
+        backup: vi.fn(async () => {
+          throw new Error("x");
+        }),
+        postWebhook: vi.fn(async () => {
+          throw new Error("net");
+        }),
+        postAlert,
+      },
+    );
+    const r = await run(body, deps, ctx);
+    expect(r.status).toBe(500);
+    expect(postAlert).toHaveBeenCalledTimes(1);
+    const payload = (postAlert.mock.calls[0] as unknown as [string, Record<string, unknown>])[1];
+    expect(payload).toMatchObject({ result: "failed", backup: "failed" });
+    expect(payload).not.toHaveProperty("webhookStatus");
+  });
+
+  it("וובהוק הצליח: אין התראה", async () => {
+    const postAlert = vi.fn(async () => ({ ok: true }));
+    const deps = makeDeps({ ...FULL_ENV, ALERT_WEBHOOK_URL: ALERT }, { postAlert });
+    await run(body, deps, ctx);
+    expect(postAlert).not.toHaveBeenCalled();
+  });
+
+  it("בלי ALERT_WEBHOOK_URL: אין התראה ואין עבודה דחויה מיותרת", async () => {
+    const postAlert = vi.fn(async () => ({ ok: true }));
+    const deps = makeDeps(FULL_ENV, { postWebhook: failingHook(), postAlert });
+    const r = await handleLead({ ...body, marketingConsent: false }, deps, ctx);
+    expect(r.deferred).toBeUndefined();
+    expect(postAlert).not.toHaveBeenCalled();
+  });
+
+  it("התראה שנכשלת או זורקת לא משנה את התשובה ולא זורקת", async () => {
+    const postAlert = vi.fn(async () => {
+      throw new Error("alert down dana@example.co.il");
+    });
+    const deps = makeDeps(
+      { ...FULL_ENV, ALERT_WEBHOOK_URL: ALERT },
+      { postWebhook: failingHook(), postAlert },
+    );
+    const r = await handleLead(body, deps, ctx);
+    expect(r.status).toBe(200);
+    await expect(r.deferred?.()).resolves.toBeUndefined();
+    expect(deps.log).toHaveBeenCalledWith({
+      event: "lead_alert",
+      id: r.json.id,
+      result: "failed",
+    });
+    expect(JSON.stringify(deps.log.mock.calls)).not.toContain("dana");
+  });
+});
+

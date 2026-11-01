@@ -91,4 +91,14 @@ describe("isAllowedOrigin", () => {
       isAllowedOrigin({ origin: "https://example.co.il", host: null }),
     ).toBe(false);
   });
+
+  it("כתובת האתר ב-config בלי https:// עדיין מזוהה", () => {
+    expect(
+      isAllowedOrigin({
+        origin: "https://www.example.co.il",
+        host: "my-site.vercel.app",
+        siteUrl: "www.example.co.il",
+      }),
+    ).toBe(true);
+  });
 });

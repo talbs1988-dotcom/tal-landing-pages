@@ -42,13 +42,25 @@ const EMAIL_MAX = 254;
 const EMAIL_RE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.[^\s@.]{2,}$/;
 
 /**
+ * ספרות ערביות-הודיות (٠-٩) ופרסיות (۰-۹) הופכות לספרות רגילות,
+ * ומקפים מיוחדים (U+2010 עד U+2015, ומינוס U+2212) הופכים למקף רגיל.
+ * כך מספר שהוקלד במקלדת בערבית, או הודבק מאתר שמעצב עם מקף שלא נשבר, עובר.
+ */
+function asciiDigitsAndDashes(s: string): string {
+  return s
+    .replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x06f0))
+    .replace(/[‐-―−]/g, "-");
+}
+
+/**
  * מנרמל טלפון ישראלי לפורמט מקומי.
  * מקבל ספרות, רווחים, מקפים, סוגריים ונקודות, עם או בלי +972 / 972 / 00972.
  * נייד 05X ו-07X: 10 ספרות. קווי 02/03/04/08/09: 9 ספרות.
  * מחזיר null אם המספר לא תקין.
  */
 export function normalizePhone(raw: string): string | null {
-  const s = cleanText(raw);
+  const s = asciiDigitsAndDashes(cleanText(raw));
   if (!s || s.length > 30 || /[^\d\s\-+().]/.test(s)) return null;
   const hasPlus = s.startsWith("+");
   if (s.indexOf("+", 1) !== -1) return null;
