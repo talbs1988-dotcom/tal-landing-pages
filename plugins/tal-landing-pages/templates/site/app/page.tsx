@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import { site } from "@/site.config";
+import { pageMetadata } from "@/lib/seo";
 import { ScrollToFormButton } from "@/components/ScrollToFormButton";
+
+// canonical ו-og:url של הדף הראשי
+export const metadata: Metadata = pageMetadata(site, { path: "/" });
 
 /*
  * דף דוגמה מינימלי. שלב העיצוב מחליף את התוכן כאן ומוסיף סקשנים

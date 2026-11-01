@@ -3,6 +3,8 @@ import type { CSSProperties, ReactNode } from "react";
 import { Rubik } from "next/font/google";
 import { site } from "@/site.config";
 import { siteUrl } from "@/lib/siteUrl";
+import { buildRootMetadata } from "@/lib/seo";
+import { JsonLd } from "@/components/JsonLd";
 import "./globals.css";
 
 // הפונט נארז בזמן הבנייה ומוגש מהאתר עצמו. הדפדפן לא פונה לגוגל.
@@ -14,8 +16,8 @@ const rubik = Rubik({
 
 export const metadata: Metadata = {
   metadataBase: siteUrl(site.page.url),
-  title: site.page.title,
-  description: site.page.description,
+  // כותרת, תיאור, Open Graph ו-twitter. ערכי TODO לא יוצאים החוצה (lib/seo.ts)
+  ...buildRootMetadata(site),
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -38,6 +40,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="he" dir="rtl" className={rubik.variable} style={brandVars()}>
       <body className="min-h-dvh antialiased">
+        <JsonLd />
         <main id="main">{children}</main>
       </body>
     </html>
