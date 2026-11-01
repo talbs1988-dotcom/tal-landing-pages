@@ -9,6 +9,7 @@
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit",
     "check:todo": "node scripts/check-todo.mjs",
+    "check": "node scripts/check-page.mjs",
     "images": "node scripts/optimize-images.mjs",
     "resend-leads": "node scripts/resend-leads.mjs"
   },

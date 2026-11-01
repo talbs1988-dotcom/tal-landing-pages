@@ -4,6 +4,7 @@ import { join, dirname, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 import { initStatus, readStatus } from "./status.mjs";
+import { syncBusiness } from "./business-sync.mjs";
 
 const TEMPLATES = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -251,6 +252,7 @@ export const STAGE_FILES = {
     ["design.md", "3-design/design.md"],
     ["references.md", "3-design/references.md"],
   ],
+  check: [["report.md", "4-checks/report.md"]],
   // live has no file of its own: the address goes to the status note and site.config.ts
   connect: [["connections.md", "5-connect/connections.md"]],
 };
@@ -292,7 +294,8 @@ const USAGE = [
   "  scaffold.mjs business <תיקיית העסק> <שם העסק>",
   "  scaffold.mjs page <תיקיית העסק> <שם הדף>",
   "  scaffold.mjs site <תיקיית הדף>",
-  "  scaffold.mjs stage-files <תיקיית הדף> <brief|copy|design>",
+  "  scaffold.mjs stage-files <תיקיית הדף> <brief|copy|design|check>",
+  "  scaffold.mjs sync-business <תיקיית הדף>",
   "  scaffold.mjs is-business <תיקייה>",
   "  scaffold.mjs find-root <תיקייה>",
   "  scaffold.mjs find-below <תיקייה>",
@@ -303,7 +306,16 @@ class UsageError extends Error {}
 async function cli([cmd, root, ...name]) {
   const value = name.join(" ");
   if (
-    !["business", "page", "site", "stage-files", "is-business", "find-root", "find-below"].includes(cmd) ||
+    ![
+      "business",
+      "page",
+      "site",
+      "stage-files",
+      "sync-business",
+      "is-business",
+      "find-root",
+      "find-below",
+    ].includes(cmd) ||
     blank(root)
   )
     throw new UsageError(USAGE);
@@ -312,6 +324,10 @@ async function cli([cmd, root, ...name]) {
   else if (cmd === "page")
     console.log(await scaffoldPage(root, { pageName: value }));
   else if (cmd === "site") console.log(await scaffoldSite(root));
+  else if (cmd === "sync-business")
+    console.log(
+      JSON.stringify(await syncBusiness(root, { findBusinessRoot }), null, 2),
+    );
   else if (cmd === "stage-files") {
     if (blank(value)) throw new UsageError(USAGE);
     console.log(JSON.stringify(await scaffoldStageFiles(root, value), null, 2));

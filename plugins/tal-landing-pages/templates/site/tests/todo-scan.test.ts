@@ -1,3 +1,4 @@
+import { PRISTINE } from "./templateState";
 import { afterEach, describe, expect, it } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -50,7 +51,7 @@ describe("scanForTodos", () => {
     ]);
   });
 
-  it("התבנית עצמה: content/copy.json נספר", () => {
+  it.skipIf(!PRISTINE)("התבנית עצמה: content/copy.json נספר", () => {
     const r = scanForTodos(fileURLToPath(new URL("..", import.meta.url)));
     expect(r.hits.some((h: any) => h.file === "content/copy.json")).toBe(true);
   });
@@ -183,5 +184,15 @@ describe("scanForTodos", () => {
   it("אין כתובת והמען מולא: אפס", () => {
     const r = scanForTodos(fixture({ "site.config.ts": cfg('""', '"ת.ד. 123, חיפה"') }));
     expect(r.total).toBe(0);
+  });
+});
+
+describe("התבנית עצמה", () => {
+  it("בקוד הקבוע של התבנית (lib, components בלי sections) אין [למלא]", () => {
+    const site = fileURLToPath(new URL("..", import.meta.url));
+    const files = scanForTodos(site)
+      .hits.map((h: { file: string }) => h.file)
+      .filter((f: string) => /^(lib|components)\//.test(f) && !f.startsWith("components/sections/"));
+    expect(files).toEqual([]);
   });
 });
