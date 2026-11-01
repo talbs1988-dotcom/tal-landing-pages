@@ -256,7 +256,7 @@ function alertTask(
     ...(webhookStatus !== undefined && { webhookStatus }),
     message: saved
       ? `ליד ${record.id} לא הגיע ל-Make (${code}). הוא שמור בגיבוי ב-Vercel Blob, תחת leads/. איך שולחים אותו מחדש: TEMPLATE.md, "ליד שלא הגיע ל-Make".`
-      : `ליד ${record.id} לא נשמר בכלל: גם הוובהוק (${code}) וגם הגיבוי נכשלו. הגולש קיבל הודעת שגיאה ויכול לנסות שוב.`,
+      : `ליד ${record.id} לא נשמר בכלל: הוובהוק נכשל (${code}), ${backup === "off" ? "ואין גיבוי מוגדר" : "וגם הגיבוי נכשל"}. הגולש קיבל הודעת שגיאה ויכול לנסות שוב.`,
   };
   return async () => {
     let result: StepResult;

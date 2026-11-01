@@ -169,7 +169,7 @@ export function BusinessDetails() {
     ["מייל", <EmailLink key="e" email={b.email} />],
   ];
   return (
-    <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 rounded-xl border border-black/15 bg-white p-5">
+    <dl className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[max-content_1fr] rounded-xl border border-black/15 bg-white p-5">
       {rows.map(([k, v]) => (
         <div key={k} className="contents">
           <dt className="font-semibold">{k}</dt>

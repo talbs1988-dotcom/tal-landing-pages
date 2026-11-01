@@ -478,7 +478,22 @@ describe("handleLead: התראה כשהוובהוק נכשל (ALERT_WEBHOOK_URL)
     expect(postAlert).toHaveBeenCalledTimes(1);
     const payload = (postAlert.mock.calls[0] as unknown as [string, Record<string, unknown>])[1];
     expect(payload).toMatchObject({ result: "failed", backup: "failed" });
+    expect(String(payload.message)).toContain("הגיבוי נכשל");
     expect(payload).not.toHaveProperty("webhookStatus");
+  });
+
+  it("וובהוק נכשל ואין גיבוי מוגדר: ההודעה אומרת שאין גיבוי (לא שהוא נכשל)", async () => {
+    const postAlert = vi.fn(async () => ({ ok: true }));
+    const deps = makeDeps(
+      { WEBHOOK_URL: "https://hook.example/abc", ALERT_WEBHOOK_URL: ALERT },
+      { postWebhook: failingHook(), postAlert },
+    );
+    const r = await run(body, deps, ctx);
+    expect(r.status).toBe(500);
+    const payload = (postAlert.mock.calls[0] as unknown as [string, Record<string, unknown>])[1];
+    expect(payload).toMatchObject({ result: "failed", backup: "off" });
+    expect(String(payload.message)).toContain("אין גיבוי מוגדר");
+    expect(String(payload.message)).not.toContain("הגיבוי נכשל");
   });
 
   it("וובהוק הצליח: אין התראה", async () => {
