@@ -208,7 +208,7 @@ export function serializeJsonLd(data: JsonLdObject): string {
 /**
  * הטקסטים בתמונת השיתוף.
  * כותרת: ogTitle ← title ← שם העסק. משנה: ogSubtitle ← שם העסק (אם לא כבר בכותרת).
- * אף פעם לא [למלא]. אם אין כלום, מחרוזת ריקה (התמונה נשארת עם צבעי המותג בלבד).
+ * אף פעם לא את סימון החוסר. אם אין כלום, מחרוזת ריקה (התמונה נשארת עם צבעי המותג בלבד).
  */
 export function ogTexts(config: SeoConfig): {
   title: string;

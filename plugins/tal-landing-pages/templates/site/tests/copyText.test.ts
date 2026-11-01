@@ -119,6 +119,7 @@ describe("content/copy.json", () => {
       "faq.q1",
       "a.b.c",
       "thankYou.body",
+      "img.hero-dana",
     ])
       expect(ok).toMatch(COPY_KEY_PATTERN);
     for (const bad of [

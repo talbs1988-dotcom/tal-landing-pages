@@ -24,7 +24,7 @@ export type ImageName = CopyKey extends infer K
   : never;
 
 /** מבנה מפתח: שטוח, עם נקודה לפחות אחת, אותיות לטיניות וספרות (hero.title, faq.q1, img.hero) */
-export const COPY_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$/;
+export const COPY_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z0-9]+(-[A-Za-z0-9]+)*)+$/;
 
 /** הטקסט של מפתח במילון, או TODO אם הוא חסר, ריק או לא מחרוזת */
 export function textFrom(dict: CopyDict, key: string): string {
