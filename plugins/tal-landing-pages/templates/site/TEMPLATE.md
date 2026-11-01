@@ -86,11 +86,31 @@ POST עם `content-type: application/json`, עד 8 שניות לניסיון, ו
 
 | שלב            | עורך                                                                                       |
 | -------------- | ------------------------------------------------------------------------------------------ |
-| 3 עיצוב ובנייה | `app/page.tsx`, `components/sections/`, `brand` (צבעים) ו-`page` ב-`site.config.ts`        |
-| 4 בדיקות       | `business` ו-`collects` ב-`site.config.ts` והדפים המשפטיים (`app/privacy` וכו'). `check:todo` |
-| 5 חיבורים      | `WEBHOOK_URL`, Blob ופיקסל. משתני סביבה ב-Vercel בלבד, לא בקוד                              |
+| 3 עיצוב | `app/page.tsx`, `components/sections/`, `brand` ו-`page` ב-`site.config.ts` |
+| 4 משפטי ונגישות | `business`, `collects` ו-`form` ב-`site.config.ts`, והדפים המשפטיים (`app/privacy` וכו') |
+| 5 בדיקה | לא עורך תוכן. מריץ `check:todo`, `build` ובדיקה בדפדפן, ומתקן |
+| 6 עלייה לאוויר | הגדרות הפרויקט והדומיין ב-Vercel, ו-`page.url` ב-`site.config.ts` |
+| 7 חיבורים | `WEBHOOK_URL`, Blob ופיקסל: משתני סביבה ב-Vercel בלבד, לא בקוד |
 
 הדפים המשפטיים הם טיוטה לבדיקת עורך דין. לא מכריזים עליהם כסופיים.
+
+## הטופס, דף התודה והפוטר
+
+- `components/LeadForm.tsx`: הטופס היחיד בדף (`id="lead-form"`). שדה הטלפון לפי `site.form.phone`. הטקסטים מה-config: `submitLabel`, `marketingConsentText`, `privacyNotice`.
+- כל עוד `privacyNotice` לא מולא, מוצג יידוע פרטיות כללי עם `[למלא]` גלוי (לאן הפרטים מועברים). לא מסתירים טקסט משפטי חסר.
+- תיבת הדיוור נפרדת מיידוע הפרטיות, לא מסומנת, ולא חובה.
+- פנייה לפי קהל: `lib/copy.ts` (`pick(g(זכר, נקבה, רבים), site.audience)`). כל עוד הקהל לא הוגדר, פונים ברבים.
+- אחרי שליחה מוצלחת עוברים ל-`/thank-you?e=<eventId>` (בלי `e` אם השרת לא החזיר מזהה). דף התודה לא נכנס לגוגל.
+- הטקסט "מה קורה עכשיו" בדף התודה: `site.page.thankYouNextSteps`.
+- `components/Footer.tsx`: קישורים משפטיים, "העדפות עוגיות" (שולח `cookie-consent-reopen`), יצירת קשר, ופרטי העסק מה-config. אסור להוריד.
+
+## עוגיות ופיקסל
+
+- `lib/consent.ts`: הבחירה של הגולש (`cookie-consent-v1` ב-localStorage, עם גרסה ותאריך). `useConsent()` הוא המקור היחיד לבאנר, לפיקסל ולאירוע ה-Lead. `writeConsent()` שולח `cookie-consent-changed`.
+- `components/CookieBanner.tsx`: שלושה כפתורים זהים (דחיית הכול, התאמה, אישור הכול). נפתח מחדש מ"העדפות עוגיות" בפוטר עם הבחירה הנוכחית. אסור להוריד או להקטין את "דחיית הכול".
+- `components/MetaPixel.tsx`: נטען **רק** עם `NEXT_PUBLIC_META_PIXEL_ID` תקין (ספרות בלבד) **וגם** הסכמה לשיווק. בלי זה אין שום בקשה לפייסבוק. PageView אחד בטעינה, ובמעברי דף בתוך האתר הפיקסל שולח PageView לבד (נבדק: fbevents מתעלם מ-PageView ידני נוסף באותו מסמך). ביטול הסכמה ← `fbq('consent','revoke')`. זיהוי אוטומטי של כפתורים (autoConfig) כבוי.
+- `components/LeadPixelEvent.tsx` בדף התודה: Lead עם אותו `eventID` שהשרת שולח ל-CAPI. פעם אחת לכל ליד, גם אחרי רענון.
+- **מדידה (analytics):** הקטגוריה קיימת בבאנר, אבל אין כרגע סקריפט מדידה. מי שמוסיף (למשל Google Analytics) יוצר רכיב בדמות `MetaPixel`: קורא `useConsent()`, טוען את הסקריפט רק כש-`consent?.analytics === true`, ומוסיף אותו ל-`app/layout.tsx` ליד `<MetaPixel />`. וגם מעדכן את `site.collects.analytics` כדי שמדיניות הפרטיות תזכיר אותו.
 
 ## אסור להוריד
 
@@ -135,3 +155,38 @@ npm run typecheck   # בדיקת טיפוסים
 ```
 
 `check:todo` סורק את `site.config.ts`, `app/`, `components/`, `lib/` (בלי `lib/todo.ts`) וקבצי טקסט ב-`public/`. הוא סופר את הסימון `[למלא]` ואת `TODO` שמוצב כערך ב-`site.config.ts`. קוד שרק קורא ל-`isTodo(...)` לא נספר. הוא לא קורא קבצי סביבה.
+
+## גוגל ותמונת שיתוף
+
+הכול נבנה מ-`site.config.ts`, והלוגיקה ב-`lib/seo.ts` (טהורה, עם בדיקות). ערך שעוד לא מולא (`[למלא]`) אף פעם לא יוצא לגוגל או לתמונה: נופלים לערך סביר אחר (כותרת ← שם העסק) או משמיטים את השדה.
+
+| מה                  | איפה                                    | הערות                                                                                     |
+| ------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------- |
+| כותרת, תיאור, OG    | `buildRootMetadata` ב-`app/layout.tsx`  | תבנית כותרת `%s \| <displayName>`, `og:locale` = `he_IL`, `twitter: summary_large_image` |
+| canonical + og:url  | `pageMetadata(site, { path, title })`   | **כל דף קובע בעצמו.** ב-layout זה היה עובר בירושה לכל הדפים ומצביע על `/`                 |
+| noindex             | `noindex` מ-`lib/seo.ts`                | לדף התודה (`export const metadata = { ...pageMetadata(...), ...noindex }`)                |
+| מפת אתר             | `app/sitemap.ts`                        | `/`, `/privacy`, `/terms`, `/accessibility`, `/data-deletion`. לא דף התודה                |
+| robots.txt          | `app/robots.ts`                         | חוסם `/thank-you` ו-`/api/`, ומצביע על מפת האתר                                           |
+| נתונים מובנים       | `components/JsonLd.tsx` (ב-layout)       | `Organization`, או `LocalBusiness` כשיש רחוב ועיר. בלי שם עסק לא יוצא כלום               |
+| תמונת שיתוף         | `app/opengraph-image.tsx`               | 1200×630, נוצרת בבנייה. כותרת: ogTitle ← title ← שם העסק. משנה: ogSubtitle ← שם העסק    |
+
+דף חדש מוסיפים גם ל-`PUBLIC_PATHS` ב-`lib/seo.ts` (אם הוא ציבורי) או ל-`DISALLOWED_PATHS` (אם לא).
+
+### עברית בתמונת השיתוף (חשוב)
+
+satori, המנוע של `next/og`, **לא מכיר כיווניות בכלל**. הוא מצייר כל תו משמאל לימין בסדר שבו הוא כתוב. בדקנו בעיניים על PNG (Next 16.4.3): בלי טיפול, "סדנת" יוצאת "תנדס", ובכותרת מעורבת כמו `סדנת Claude Code ב-2026` גם סדר המילים הפוך.
+
+הפתרון ב-`lib/bidi.ts` (עם בדיקות):
+
+1. `bidiUnits(text)` מפרק את הטקסט ליחידות בסדר הלוגי: מילה עברית, רצף אנגלית/מספרים (נשאר שלם, כולל רווחים), או סימן פיסוק. זה קירוב של אלגוריתם הכיווניות של יוניקוד לפסקה מימין לשמאל: פיסוק בקצה מילה עובר לצד הנכון, `50%` ו-`₪100` נשארים צמודים למספר, סוגריים מתהפכים.
+2. הרכיב `<Bidi>` ב-`opengraph-image.tsx` שם כל יחידה כפריט flex, בקונטיינר עם `flexDirection: "row-reverse"` + `flexWrap: "wrap"`. היחידה הראשונה בימין, והשורות נשברות כמו בעברית.
+3. `visualText(unit)` הופך את האותיות בתוך יחידה עברית (הניקוד נשאר על האות). אנגלית ומספרים נשארים כמו שהם.
+
+נבדק בעיניים: `סדנת Claude Code ב-2026`, שורת משנה עם `3`, `100%`, סוגריים ונקודה בסוף, וכותרת ארוכה מעורבת שנשברת לשלוש שורות. הכול יוצא בסדר הנכון.
+
+כללים לתמונה:
+
+- **כל טקסט עובר דרך `<Bidi>`.** לא שמים טקסט עברי ישירות בתוך `div`. כתובת אתר (אנגלית בלבד) יכולה לשבת ישירות.
+- כל `div` עם 2 ילדים או יותר חייב `display: "flex"`.
+- פונטים: קבצי **woff** מ-`@fontsource/rubik/files/` (satori לא תומך ב-woff2). עברית ולטינית הם קבצים נפרדים, נטענים בשמות שונים (`RubikHebrew`, `RubikLatin`), ו-`fontFamily: "RubikLatin, RubikHebrew"` בוחר לפי התו.
+- **אחרי כל שדרוג של Next** לרנדר שוב (`npm run build && npm start`, לפתוח `/opengraph-image`) ולבדוק בעיניים. אם גרסה חדשה של satori תתחיל להפוך עברית בעצמה, הטקסט ייצא הפוך, ואז מוחקים את ההיפוך ב-`visualText`.

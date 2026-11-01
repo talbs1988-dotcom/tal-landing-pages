@@ -69,6 +69,11 @@ export type SiteConfig = {
     ogSubtitle: string;
     /** התאריך שבו הדפים המשפטיים עודכנו לאחרונה, בפורמט YYYY-MM-DD */
     lastUpdated: string;
+    /**
+     * מה קורה אחרי שהשאירו פרטים. מופיע בדף התודה.
+     * למשל: "תוך יום עסקים נחזור אליך בוואטסאפ. בינתיים, המדריך מחכה לך במייל."
+     */
+    thankYouNextSteps: string;
   };
   /**
    * צבעי המותג בפורמט hex (#RRGGBB).
@@ -143,6 +148,7 @@ export const site: SiteConfig = {
     ogTitle: TODO,
     ogSubtitle: TODO,
     lastUpdated: TODO,
+    thankYouNextSteps: TODO,
   },
   brand: {
     primary: "#0F766E",
