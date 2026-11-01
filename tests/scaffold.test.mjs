@@ -384,3 +384,149 @@ test("scaffoldSite refuses a folder that is not a page", async () => {
   await assert.rejects(() => scaffoldSite(dir), /לא תיקיית דף/);
   assert.equal(await fileExists(join(dir, "site")), false);
 });
+
+// ---- stage-files ----
+import { scaffoldStageFiles, STAGE_FILES } from "../plugins/tal-landing-pages/scripts/scaffold.mjs";
+
+test("STAGE_FILES lists the template files of brief, copy and design", () => {
+  assert.deepEqual(Object.keys(STAGE_FILES), ["brief", "copy", "design"]);
+  assert.ok(STAGE_FILES.brief.length > 0);
+  assert.deepEqual(STAGE_FILES.copy, [
+    ["copy.md", "2-copy/copy.md"],
+    ["images-list.md", "2-copy/images-list.md"],
+  ]);
+  assert.deepEqual(STAGE_FILES.design, [
+    ["design.md", "3-design/design.md"],
+    ["references.md", "3-design/references.md"],
+  ]);
+});
+
+test("every stage template exists and has no placeholder other than {{pageName}}", async () => {
+  const templates = join(dirname(fileURLToPath(import.meta.url)), "..", "plugins", "tal-landing-pages", "templates");
+  for (const [stage, files] of Object.entries(STAGE_FILES))
+    for (const [tpl] of files) {
+      const text = await readFile(join(templates, tpl), "utf8");
+      const vars = [...text.matchAll(/\{\{\s*([^}]*?)\s*\}\}/g)].map((m) => m[1]);
+      assert.deepEqual(vars.filter((v) => v !== "pageName"), [], `${stage}: ${tpl}`);
+    }
+});
+
+test("stage-files copy creates copy.md and images-list.md with the page name", async () => {
+  const page = await pageFixture();
+  const r = await scaffoldStageFiles(page, "copy");
+  assert.deepEqual(r.created, [
+    join(page, "2-copy", "copy.md"),
+    join(page, "2-copy", "images-list.md"),
+  ]);
+  assert.deepEqual(r.skipped, []);
+  const { pageName } = await readStatus(page);
+  for (const p of r.created) {
+    const text = await readFile(p, "utf8");
+    assert.doesNotMatch(text, /\{\{/, p);
+    assert.ok(text.includes(pageName), p);
+  }
+  const copy = await readFile(join(page, "2-copy", "copy.md"), "utf8");
+  assert.match(copy, /^# הקופי של /);
+  assert.match(copy, /## 1\. הירו/);
+  assert.match(copy, /## 13\. טופס/);
+  assert.match(copy, /## סקשנים שהוסרו/);
+  const images = await readFile(join(page, "2-copy", "images-list.md"), "utf8");
+  assert.match(images, /^# התמונות של /);
+});
+
+test("stage-files copy keeps a half-written copy.md and only adds what is missing", async () => {
+  const page = await pageFixture();
+  await writeFile(join(page, "2-copy", "copy.md"), "## 1. הירו\n\nמצב: אושר\n");
+  const r = await scaffoldStageFiles(page, "copy");
+  assert.deepEqual(r.skipped, [join(page, "2-copy", "copy.md")]);
+  assert.deepEqual(r.created, [join(page, "2-copy", "images-list.md")]);
+  assert.equal(await readFile(join(page, "2-copy", "copy.md"), "utf8"), "## 1. הירו\n\nמצב: אושר\n");
+});
+
+test("stage-files design creates design.md and references.md", async () => {
+  const page = await pageFixture();
+  const r = await scaffoldStageFiles(page, "design");
+  assert.deepEqual(r.created, [
+    join(page, "3-design", "design.md"),
+    join(page, "3-design", "references.md"),
+  ]);
+  const design = await readFile(join(page, "3-design", "design.md"), "utf8");
+  assert.match(design, /# החלטות העיצוב/);
+  assert.doesNotMatch(design, /\{\{/);
+  const refs = await readFile(join(page, "3-design", "references.md"), "utf8");
+  assert.match(refs, /# רפרנסים/);
+  assert.doesNotMatch(refs, /\{\{/);
+  const again = await scaffoldStageFiles(page, "design");
+  assert.deepEqual(again.created, []);
+  assert.equal(again.skipped.length, 2);
+});
+
+test("stage-files brief creates brief.md and customer-words.md with the page name", async () => {
+  const page = await pageFixture();
+  const r = await scaffoldStageFiles(page, "brief");
+  assert.deepEqual(r.created, [
+    join(page, "1-brief", "brief.md"),
+    join(page, "1-brief", "customer-words.md"),
+  ]);
+  assert.deepEqual(r.skipped, []);
+  const brief = await readFile(join(page, "1-brief", "brief.md"), "utf8");
+  assert.match(brief, /# האפיון של דף/);
+  assert.match(brief, /\[למלא\]/);
+  assert.doesNotMatch(brief, /\{\{/);
+  const words = await readFile(join(page, "1-brief", "customer-words.md"), "utf8");
+  assert.doesNotMatch(words, /\{\{/);
+});
+
+test("stage-files never overwrites a file that is already there", async () => {
+  const page = await pageFixture();
+  await writeFile(join(page, "1-brief", "brief.md"), "שלי");
+  const r = await scaffoldStageFiles(page, "brief");
+  assert.deepEqual(r.skipped, [join(page, "1-brief", "brief.md")]);
+  assert.deepEqual(r.created, [join(page, "1-brief", "customer-words.md")]);
+  assert.equal(await readFile(join(page, "1-brief", "brief.md"), "utf8"), "שלי");
+  const again = await scaffoldStageFiles(page, "brief");
+  assert.deepEqual(again.created, []);
+  assert.equal(again.skipped.length, 2);
+});
+
+test("stage-files recreates a missing stage folder", async () => {
+  const page = await pageFixture();
+  const { rm } = await import("node:fs/promises");
+  await rm(join(page, "1-brief"), { recursive: true });
+  const r = await scaffoldStageFiles(page, "brief");
+  assert.equal(r.created.length, 2);
+});
+
+test("stage-files rejects an unknown stage in hebrew", async () => {
+  const page = await pageFixture();
+  for (const id of ["nope", "start", "toString", "__proto__"])
+    await assert.rejects(() => scaffoldStageFiles(page, id), /שלב לא מוכר: .*אפשר: brief, copy, design/, id);
+});
+
+test("stage-files refuses a folder that is not a page", async () => {
+  const dir = await tmp();
+  await assert.rejects(() => scaffoldStageFiles(dir, "brief"), /זו לא תיקיית דף/);
+  assert.equal(await fileExists(join(dir, "1-brief")), false);
+});
+
+test("CLI stage-files prints created/skipped JSON, and hebrew errors", async () => {
+  const page = await pageFixture();
+  const ok = spawnSync(process.execPath, [SCAFFOLD_CLI, "stage-files", page, "brief"], { encoding: "utf8" });
+  assert.equal(ok.status, 0, ok.stderr);
+  const out = JSON.parse(ok.stdout);
+  assert.equal(out.created.length, 2);
+  assert.deepEqual(out.skipped, []);
+  const twice = JSON.parse(
+    spawnSync(process.execPath, [SCAFFOLD_CLI, "stage-files", page, "brief"], { encoding: "utf8" }).stdout,
+  );
+  assert.equal(twice.skipped.length, 2);
+  const bad = spawnSync(process.execPath, [SCAFFOLD_CLI, "stage-files", page, "nope"], { encoding: "utf8" });
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /שלב לא מוכר: nope/);
+  const notPage = spawnSync(process.execPath, [SCAFFOLD_CLI, "stage-files", await tmp(), "brief"], { encoding: "utf8" });
+  assert.equal(notPage.status, 1);
+  assert.match(notPage.stderr, /זו לא תיקיית דף/);
+  const noStage = spawnSync(process.execPath, [SCAFFOLD_CLI, "stage-files", page], { encoding: "utf8" });
+  assert.equal(noStage.status, 1);
+  assert.match(noStage.stderr, /שימוש:/);
+});
