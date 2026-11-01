@@ -1,11 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { writeFileAtomic } from "@/lib/atomicWrite";
-import { devEditNotFound, handleDevEdit } from "@/lib/devEdit";
+import { devEditDisabled, devEditNotFound, handleDevEdit } from "@/lib/devEdit";
 
 /*
  * POST /api/dev-edit: מצב העריכה שומר טקסט ל-content/copy.json.
- * קיים רק ב-`npm run dev`. בכל סביבה אחרת (גם באתר באוויר) כל בקשה מקבלת 404.
+ * קיים רק ב-`npm run dev` (שמאזין רק למחשב עצמו, 127.0.0.1). בכל סביבה אחרת (גם באתר באוויר)
+ * כל בקשה מקבלת 404. גם ב-`npm run dev:phone` (פתוח לרשת, לצפייה מהטלפון) מצב העריכה כבוי: 404.
  * הלוגיקה ב-lib/devEdit.ts.
  */
 export const runtime = "nodejs";
@@ -18,6 +19,8 @@ let queue: Promise<unknown> = Promise.resolve();
 
 export function POST(request: Request): Promise<Response> {
   if (process.env.NODE_ENV !== "development")
+    return Promise.resolve(devEditNotFound());
+  if (devEditDisabled(process.env.DEV_EDIT))
     return Promise.resolve(devEditNotFound());
   const run = queue.then(() =>
     handleDevEdit(request, {

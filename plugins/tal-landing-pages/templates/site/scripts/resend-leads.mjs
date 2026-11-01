@@ -5,14 +5,18 @@
  * מתי: הוובהוק נכשל (Make כבוי, תרחיש נמחק, כתובת שגויה), והליד נשמר רק בגיבוי.
  * ההסבר המלא ב-TEMPLATE.md, בסעיף "ליד שלא הגיע ל-Make".
  *
- *   npm run resend-leads -- <תיקייה או קובץ>... <WEBHOOK_URL> [--dry-run]
+ *   npm run resend-leads -- <תיקייה או קובץ>... [--dry-run]
+ *
+ * בעל העסק מריץ את זה בטרמינל שלו, לא קלוד. כתובת הוובהוק היא סוד: הסקריפט שואל אותה
+ * ומקבל אותה בהדבקה, בלי שתופיע על המסך, בשורת הפקודה או בהיסטוריה של הטרמינל.
  *
  * - קורא קבצי JSON של לידים (כמו שהורדו מ-Vercel Blob, leads/<תאריך>/<id>.json),
  *   גם מתוך תתי-תיקיות.
  * - שולח כל ליד בדיוק באותו מבנה שהאתר שולח (toWebhookPayload), ב-POST JSON.
  * - --dry-run: רק מראה מה יישלח.
  * - מדפיס מזהה ותוצאה לכל ליד. אף פעם לא שם, מייל או טלפון.
- * - לא קורא קבצי סביבה (.env). את כתובת הוובהוק מעבירים כארגומנט.
+ * - לא קורא קבצי סביבה (.env). כתובת שהועברה כארגומנט נדחית, כדי שלא תישמר בהיסטוריה.
+ * - אחרי שהכול נשלח: למחוק את התיקייה שהורדה. יש בה שמות, מיילים וטלפונים של לקוחות.
  *
  * שולחים רק את הלידים שלא הגיעו, אחרת הם יופיעו פעמיים ב-Make.
  */
@@ -171,23 +175,87 @@ export async function resendLeads(opts) {
   return result;
 }
 
-async function main(argv) {
+/** כתובת שנראית כמו וובהוק בתוך הארגומנטים (http/https, או hook.) */
+const LOOKS_LIKE_URL = /^(https?:\/\/|hook\.|[\w-]+\.make\.com)/i;
+
+/**
+ * הארגומנטים: רק נתיבים ו---dry-run. כתובת בשורת הפקודה ← שגיאה (urlInArgs),
+ * כי היא נשמרת בהיסטוריה של הטרמינל.
+ * @param {string[]} argv
+ */
+export function parseResendArgs(argv) {
   const dryRun = argv.includes("--dry-run");
-  const args = argv.filter((a) => a !== "--dry-run");
-  if (args.length < 2) {
+  const rest = argv.filter((a) => a !== "--dry-run");
+  const urlInArgs = rest.some((a) => LOOKS_LIKE_URL.test(a));
+  return { dryRun, urlInArgs, paths: rest.filter((a) => !LOOKS_LIKE_URL.test(a)) };
+}
+
+/** קורא שורה אחת מהמקלדת בלי להציג אותה (או מ-stdin, כשהוא לא טרמינל) */
+function readHiddenLine(prompt) {
+  return new Promise((resolve) => {
+    const input = process.stdin;
+    process.stdout.write(prompt);
+    if (!input.isTTY) {
+      let buf = "";
+      input.setEncoding("utf8");
+      input.on("data", (c) => (buf += c));
+      input.on("end", () => resolve(buf.split(/\r?\n/)[0].trim()));
+      return;
+    }
+    let value = "";
+    input.setRawMode(true);
+    input.resume();
+    input.setEncoding("utf8");
+    const done = () => {
+      input.setRawMode(false);
+      input.pause();
+      input.removeListener("data", onData);
+      process.stdout.write("\n");
+      resolve(value.trim());
+    };
+    const onData = (chunk) => {
+      for (const ch of chunk) {
+        if (ch === "\r" || ch === "\n") return done();
+        if (ch === "\u0003") {
+          input.setRawMode(false);
+          process.stdout.write("\n");
+          process.exit(130);
+        }
+        if (ch === "\u007f" || ch === "\b") value = value.slice(0, -1);
+        else value += ch;
+      }
+    };
+    input.on("data", onData);
+  });
+}
+
+async function main(argv) {
+  const { dryRun, urlInArgs, paths } = parseResendArgs(argv);
+  if (urlInArgs) {
     console.log(
-      "שימוש: npm run resend-leads -- <תיקייה או קובץ>... <WEBHOOK_URL> [--dry-run]",
+      "לא כותבים את כתובת הוובהוק בשורת הפקודה (היא נשמרת בהיסטוריה של הטרמינל).\n" +
+        "מריצים בלי הכתובת, והסקריפט ישאל אותה: npm run resend-leads -- <תיקייה>",
     );
     process.exit(1);
   }
-  const url = args[args.length - 1];
-  const paths = args.slice(0, -1);
+  if (paths.length < 1) {
+    console.log("שימוש: npm run resend-leads -- <תיקייה או קובץ>... [--dry-run]");
+    process.exit(1);
+  }
+  const url = dryRun
+    ? "https://dry-run.invalid/"
+    : await readHiddenLine(
+        "הדביקו את כתובת הוובהוק מ-Make ולחצו Enter (לא יופיע כלום על המסך, וזה תקין): ",
+      );
   try {
     const r = await resendLeads({ paths, url, dryRun });
     console.log(
       dryRun
         ? `\n${r.wouldSend} לידים יישלחו, ${r.skipped} קבצים דולגו (לא נשלח כלום)`
-        : `\nנשלחו ${r.sent}, נכשלו ${r.failed}, דולגו ${r.skipped}`,
+        : `\nנשלחו ${r.sent}, נכשלו ${r.failed}, דולגו ${r.skipped}` +
+            (r.failed === 0
+              ? "\nעכשיו מוחקים את התיקייה שהורדה: יש בה פרטים של לקוחות."
+              : ""),
     );
     process.exit(r.failed > 0 ? 1 : 0);
   } catch (e) {

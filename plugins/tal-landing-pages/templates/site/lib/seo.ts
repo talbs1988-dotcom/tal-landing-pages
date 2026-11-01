@@ -61,6 +61,10 @@ export function buildRootMetadata(config: SeoConfig): Metadata {
     },
     ...(description ? { description } : {}),
     ...(name ? { applicationName: name } : {}),
+    // אימות Search Console בתגית meta (דף בלי דומיין משלו). ריק או TODO ← אין תגית
+    ...(filled(config.page.googleVerification ?? "")
+      ? { verification: { google: filled(config.page.googleVerification) } }
+      : {}),
     openGraph: openGraphBase(config, title, description),
     twitter: {
       card: "summary_large_image",

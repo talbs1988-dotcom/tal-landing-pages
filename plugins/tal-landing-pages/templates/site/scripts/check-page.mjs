@@ -110,6 +110,38 @@ export function checkPageUrl(configText) {
   return { ...base, ok: true, details: url };
 }
 
+// ---------- 1ב. דף תשלום ----------
+
+/**
+ * page.checkoutUrl: "" ← דף לידים, לא רלוונטי. מלא ← חייב להיות https מלא,
+ * אחרת הכפתורים גוללים לטופס בשקט (lib/checkout.ts) ואף אחד לא מגיע לתשלום.
+ * שהכתובת באמת עונה בודקים ב-/page-check עם curl (צריך רשת).
+ */
+export function checkCheckoutUrl(configText) {
+  const v = configValue(configText, "page", "checkoutUrl");
+  const base = { name: "checkoutUrl", required: true };
+  if (v === undefined || v === "")
+    return {
+      ...base,
+      required: false,
+      ok: null,
+      details: "לא רלוונטי: הכפתורים מובילים לטופס (אין דף תשלום)",
+    };
+  if (v === null || v.includes(MARK))
+    return {
+      ...base,
+      ok: false,
+      details: "נבחר דף תשלום, אבל הכתובת שלו עוד לא מולאה (page.checkoutUrl)",
+    };
+  if (!isHttpsUrl(v.trim()))
+    return {
+      ...base,
+      ok: false,
+      details: `page.checkoutUrl חייב להיות כתובת https מלאה (כרגע: "${v}")`,
+    };
+  return { ...base, ok: true, details: v.trim() };
+}
+
 // ---------- 2. תמונות ----------
 
 /** התקרות מ-scripts/optimize-images.mjs (KB = 1000 בתים) */
@@ -168,7 +200,7 @@ export function checkImages(assetsDir) {
     const cap = isHero ? IMAGE_CAPS.hero : IMAGE_CAPS.inline;
     if (f.bytes > cap)
       items.push(
-        `${name}: ${kb(f.bytes)}, מעל התקרה של ${kb(cap)} (${isHero ? "תמונת הירו" : "תמונה בתוך הדף"})`,
+        `${name}: ${kb(f.bytes)}, מעל התקרה של ${kb(cap)} (${isHero ? "תמונת הירו" : "תמונה בתוך הדף. אם זו תמונת הפתיחה, השם שלה צריך להתחיל ב-hero"})`,
       );
   }
   return {
@@ -189,7 +221,7 @@ export function checkImages(assetsDir) {
 
 /** מפתחות שהם כותרת, כפתור או בולט: בלי נקודה בסוף */
 const NO_DOT_KEY =
-  /(^|\.)(title|heading|eyebrow|cta\d*|bullet\d*)$/i;
+  /(^|\.)(title|heading|eyebrow|cta\d*|bullet\d*|item\d*)$/i;
 
 /** דפוסים מסעיף 6 של writing-rules.md שאפשר לזהות במכונה בלי הרבה טעויות */
 export const AI_PATTERNS = [
@@ -438,6 +470,7 @@ export async function runChecks(root, o = {}) {
   say("[למלא]");
   checks.push(checkTodos(root));
   checks.push(checkPageUrl(configText));
+  checks.push(checkCheckoutUrl(configText));
   say("תמונות");
   checks.push(checkImages(join(root, "public", "assets")));
   if (copyError) {

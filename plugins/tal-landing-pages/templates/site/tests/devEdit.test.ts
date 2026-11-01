@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   DEV_EDIT_MSG,
+  devEditDisabled,
   MAX_EDIT_LENGTH,
   applyEdit,
   checkDevEditRequest,
@@ -333,5 +334,29 @@ describe("writeFileAtomic", () => {
     const file = join(dir, "missing-dir", "copy.json");
     await expect(writeFileAtomic(file, "x")).rejects.toThrow();
     expect(readdirSync(dir)).toEqual([]);
+  });
+});
+
+describe("devEditDisabled (npm run dev:phone)", () => {
+  it("DEV_EDIT=off מכבה את מצב העריכה, כל ערך אחר לא", () => {
+    expect(devEditDisabled("off")).toBe(true);
+    expect(devEditDisabled(" OFF ")).toBe(true);
+    expect(devEditDisabled(undefined)).toBe(false);
+    expect(devEditDisabled("")).toBe(false);
+    expect(devEditDisabled("on")).toBe(false);
+  });
+});
+
+describe("package.json: שרת הפיתוח", () => {
+  it("npm run dev מאזין רק למחשב עצמו, ו-dev:phone מכבה את מצב העריכה", () => {
+    const pkg = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    );
+    expect(pkg.scripts.dev).toMatch(/-H 127\.0\.0\.1/);
+    const phone = readFileSync(
+      new URL("../scripts/dev-phone.mjs", import.meta.url),
+      "utf8",
+    );
+    expect(phone).toMatch(/DEV_EDIT:\s*"off"/);
   });
 });

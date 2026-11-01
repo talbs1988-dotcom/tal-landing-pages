@@ -19,6 +19,7 @@ export function configValue(
 export function isHttpsUrl(v: string): boolean;
 export function checkTodos(root: string): CheckResult & { items: string[] };
 export function checkPageUrl(configText: string): CheckResult;
+export function checkCheckoutUrl(configText: string): CheckResult;
 export function checkImages(
   assetsDir: string,
 ): CheckResult & { items: string[] };

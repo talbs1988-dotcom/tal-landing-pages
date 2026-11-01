@@ -531,3 +531,14 @@ test("CLI stage-files prints created/skipped JSON, and hebrew errors", async () 
   assert.equal(noStage.status, 1);
   assert.match(noStage.stderr, /שימוש:/);
 });
+
+import { isExcludedFromSite } from "../plugins/tal-landing-pages/scripts/scaffold.mjs";
+
+test("isExcludedFromSite: backups (.bak) never get copied into a page's site/", () => {
+  assert.equal(isExcludedFromSite("consent.ts.bak"), true);
+  assert.equal(isExcludedFromSite("page.tsx.bak"), true);
+  assert.equal(isExcludedFromSite(".env"), true);
+  assert.equal(isExcludedFromSite(".env.example"), false);
+  assert.equal(isExcludedFromSite("consent.ts"), false);
+  assert.equal(isExcludedFromSite("bakery.tsx"), false);
+});

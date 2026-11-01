@@ -142,6 +142,15 @@ function reply(status: number, json: Record<string, unknown>) {
   return Response.json(json, { status, headers: noStore });
 }
 
+/**
+ * מצב העריכה כבוי במפורש: `npm run dev:phone` (צפייה מהטלפון) מריץ את השרת פתוח לרשת,
+ * ואז אסור שמישהו אחר באותה רשת יוכל לכתוב ל-copy.json. השרת מקבל DEV_EDIT=off.
+ * הגנה שאי אפשר לזייף מבחוץ, כי היא לא תלויה בכותרות של הבקשה.
+ */
+export function devEditDisabled(devEditFlag: string | undefined): boolean {
+  return (devEditFlag ?? "").trim().toLowerCase() === "off";
+}
+
 export function devEditNotFound() {
   return new Response("Not Found", { status: 404, headers: noStore });
 }

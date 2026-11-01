@@ -205,7 +205,9 @@ export function isExcludedFromSite(name) {
     name.startsWith(".env.") ||
     name === "next-env.d.ts" ||
     name === ".DS_Store" ||
-    name.endsWith(".tsbuildinfo")
+    name.endsWith(".tsbuildinfo") ||
+    // קבצי גיבוי (page.tsx.bak וכו'): כל מה שב-site/ עולה לאוויר
+    name.endsWith(".bak")
   );
 }
 
@@ -216,7 +218,7 @@ export async function scaffoldSite(pageDir, { templateDir = SITE_TEMPLATE } = {}
   const page = resolve(pageDir);
   if (!(await exists(join(page, ".page", "status.json"))))
     throw new Error(
-      `זו לא תיקיית דף: ${page}. תיקיית דף נוצרת עם /page ויש בה את .page/status.json.`,
+      `זו לא תיקיית דף: ${page}. תיקיית דף נוצרת עם /page-start ויש בה את .page/status.json.`,
     );
   if (!(await exists(join(templateDir, "package.json"))))
     throw new Error(`לא נמצאה תבנית האתר: ${templateDir}`);
@@ -294,7 +296,7 @@ const USAGE = [
   "  scaffold.mjs business <תיקיית העסק> <שם העסק>",
   "  scaffold.mjs page <תיקיית העסק> <שם הדף>",
   "  scaffold.mjs site <תיקיית הדף>",
-  "  scaffold.mjs stage-files <תיקיית הדף> <brief|copy|design|check>",
+  "  scaffold.mjs stage-files <תיקיית הדף> <brief|copy|design|check|connect>",
   "  scaffold.mjs sync-business <תיקיית הדף>",
   "  scaffold.mjs is-business <תיקייה>",
   "  scaffold.mjs find-root <תיקייה>",
