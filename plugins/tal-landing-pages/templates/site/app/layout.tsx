@@ -8,6 +8,9 @@ import { CookieBanner } from "@/components/CookieBanner";
 import { MetaPixel } from "@/components/MetaPixel";
 import { buildRootMetadata } from "@/lib/seo";
 import { JsonLd } from "@/components/JsonLd";
+import { A11yInit } from "@/components/A11yInit";
+import { SkipLink } from "@/components/SkipLink";
+import { AccessibilityWidget } from "@/components/AccessibilityWidget";
 import "./globals.css";
 
 // הפונט נארז בזמן הבנייה ומוגש מהאתר עצמו. הדפדפן לא פונה לגוגל.
@@ -41,15 +44,25 @@ function brandVars(): CSSProperties {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="he" dir="rtl" className={rubik.variable} style={brandVars()}>
+    <html
+      lang="he"
+      dir="rtl"
+      className={rubik.variable}
+      style={brandVars()}
+      // A11yInit מוסיף class של נגישות ל-<html> לפני ש-React מתחבר
+      suppressHydrationWarning
+    >
       <body className="flex min-h-dvh flex-col antialiased">
+        <A11yInit />
         <JsonLd />
+        <SkipLink />
         <main id="main" className="flex-1">
           {children}
         </main>
         <Footer />
         <CookieBanner />
         <MetaPixel />
+        <AccessibilityWidget />
       </body>
     </html>
   );
