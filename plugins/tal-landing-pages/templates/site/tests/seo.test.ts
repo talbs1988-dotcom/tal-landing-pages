@@ -15,9 +15,22 @@ import {
 
 type SeoConfig = Pick<SiteConfig, "page" | "business">;
 
-/** config ריק לגמרי: הכול TODO (כמו התבנית) */
+/** כל מחרוזת ← TODO, בכל עומק */
+function allTodo<T>(v: T): T {
+  if (typeof v === "string") return TODO as T;
+  if (v && typeof v === "object")
+    return Object.fromEntries(
+      Object.entries(v).map(([k, x]) => [k, allTodo(x)]),
+    ) as T;
+  return v;
+}
+
+/**
+ * config ריק לגמרי: הכול TODO (כמו התבנית). נבנה מהמבנה של site.config ולא מהערכים,
+ * כדי שהבדיקה תעבור גם בדף שכבר מילאו.
+ */
 function empty(): SeoConfig {
-  return structuredClone({ page: site.page, business: site.business });
+  return allTodo(structuredClone({ page: site.page, business: site.business }));
 }
 
 /** config מלא, עם שינויים */

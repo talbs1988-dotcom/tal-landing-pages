@@ -1,3 +1,4 @@
+import { PRISTINE } from "./templateState";
 import { describe, expect, it } from "vitest";
 import copy from "@/content/copy.json";
 import {
@@ -70,8 +71,8 @@ describe("editPropsFor", () => {
 
 describe("t, alt ו-editProps על copy.json", () => {
   it("t קורא מהקובץ (ברירת המחדל בתבנית היא [למלא])", () => {
-    expect(t("hero.title")).toBe(copy["hero.title"]);
-    expect(t("hero.title")).toBe(TODO);
+    const raw = copy["hero.title"];
+    expect(t("hero.title")).toBe(raw.trim() === "" ? TODO : raw);
   });
 
   it("alt לתמונה שאין לה מפתח: [למלא]", () => {
@@ -108,7 +109,8 @@ describe("content/copy.json", () => {
     );
   });
 
-  it("בתבנית כל הערכים הם [למלא]", () => {
+  // רק בתבנית הריקה: בדף שמילאו, הערכים כבר טקסט אמיתי
+  it.skipIf(!PRISTINE)("בתבנית כל הערכים הם [למלא]", () => {
     for (const [k, v] of entries) expect(v, k).toBe(TODO);
   });
 

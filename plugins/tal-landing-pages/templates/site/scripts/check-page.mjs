@@ -401,7 +401,7 @@ function checkTests(root) {
   const r = runNpm(root, "test");
   const ok = r.status === 0;
   const passed = /Tests\s+(?:\d+ failed \|\s*)?(\d+) passed/.exec(r.output);
-  const failed = /(\d+) failed/.exec(r.output);
+  const failed = /Tests\s+(\d+) failed/.exec(r.output);
   return {
     name: "tests",
     ok,

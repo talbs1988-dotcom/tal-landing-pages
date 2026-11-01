@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -200,7 +201,8 @@ describe("copy-scan מהפלאגין", () => {
     const r = await checkCopyMd("/nope/copy.md", undefined);
     expect(r.ok).toBeNull();
   });
-  it("copy.md מאושר ← עבר. סקשן בטיוטה או מקף ארוך ← נכשל", async () => {
+  // הסורק יושב בפלאגין. בעותק של התבנית בתוך דף הוא לא שם, אז הבדיקה מדלגת
+  it.skipIf(!existsSync(COPY_SCAN))("copy.md מאושר ← עבר. סקשן בטיוטה או מקף ארוך ← נכשל", async () => {
     const root = fixture({
       "good.md": good,
       "bad.md": good
