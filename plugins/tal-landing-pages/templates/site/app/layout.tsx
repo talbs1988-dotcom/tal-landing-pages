@@ -4,6 +4,8 @@ import { Rubik } from "next/font/google";
 import { site } from "@/site.config";
 import { siteUrl } from "@/lib/siteUrl";
 import { Footer } from "@/components/Footer";
+import { CookieBanner } from "@/components/CookieBanner";
+import { MetaPixel } from "@/components/MetaPixel";
 import "./globals.css";
 
 // הפונט נארז בזמן הבנייה ומוגש מהאתר עצמו. הדפדפן לא פונה לגוגל.
@@ -43,6 +45,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
         <Footer />
+        <CookieBanner />
+        <MetaPixel />
       </body>
     </html>
   );

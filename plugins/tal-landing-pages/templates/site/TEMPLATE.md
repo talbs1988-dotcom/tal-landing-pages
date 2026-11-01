@@ -101,6 +101,14 @@ POST עם `content-type: application/json`, עד 8 שניות לניסיון, ו
 - הטקסט "מה קורה עכשיו" בדף התודה: `site.page.thankYouNextSteps`.
 - `components/Footer.tsx`: קישורים משפטיים, "העדפות עוגיות" (שולח `cookie-consent-reopen`), יצירת קשר, ופרטי העסק מה-config. אסור להוריד.
 
+## עוגיות ופיקסל
+
+- `lib/consent.ts`: הבחירה של הגולש (`cookie-consent-v1` ב-localStorage, עם גרסה ותאריך). `useConsent()` הוא המקור היחיד לבאנר, לפיקסל ולאירוע ה-Lead. `writeConsent()` שולח `cookie-consent-changed`.
+- `components/CookieBanner.tsx`: שלושה כפתורים זהים (דחיית הכול, התאמה, אישור הכול). נפתח מחדש מ"העדפות עוגיות" בפוטר עם הבחירה הנוכחית. אסור להוריד או להקטין את "דחיית הכול".
+- `components/MetaPixel.tsx`: נטען **רק** עם `NEXT_PUBLIC_META_PIXEL_ID` תקין (ספרות בלבד) **וגם** הסכמה לשיווק. בלי זה אין שום בקשה לפייסבוק. PageView אחד בטעינה, ובמעברי דף בתוך האתר הפיקסל שולח PageView לבד (נבדק: fbevents מתעלם מ-PageView ידני נוסף באותו מסמך). ביטול הסכמה ← `fbq('consent','revoke')`. זיהוי אוטומטי של כפתורים (autoConfig) כבוי.
+- `components/LeadPixelEvent.tsx` בדף התודה: Lead עם אותו `eventID` שהשרת שולח ל-CAPI. פעם אחת לכל ליד, גם אחרי רענון.
+- **מדידה (analytics):** הקטגוריה קיימת בבאנר, אבל אין כרגע סקריפט מדידה. מי שמוסיף (למשל Google Analytics) יוצר רכיב בדמות `MetaPixel`: קורא `useConsent()`, טוען את הסקריפט רק כש-`consent?.analytics === true`, ומוסיף אותו ל-`app/layout.tsx` ליד `<MetaPixel />`. וגם מעדכן את `site.collects.analytics` כדי שמדיניות הפרטיות תזכיר אותו.
+
 ## פקודות
 
 ```bash

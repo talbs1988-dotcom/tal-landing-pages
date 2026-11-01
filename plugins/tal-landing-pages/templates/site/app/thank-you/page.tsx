@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/site.config";
 import { isUuid } from "@/lib/lead";
+import { LeadPixelEvent } from "@/components/LeadPixelEvent";
 
 // דף התודה לא נכנס לגוגל
 export const metadata: Metadata = {
@@ -26,10 +27,8 @@ export default async function ThankYouPage({
           {site.page.thankYouNextSteps}
         </p>
 
-        {/* ─── משבצת לפיקסל (משימה 4) ───────────────────────────────────────
-            כאן נכנס: <LeadPixelEvent eventId={eventId} />
-            שולח Lead לפיקסל פעם אחת, רק עם הסכמה לשיווק, עם אותו eventId שנשלח מהשרת.
-            ──────────────────────────────────────────────────────────────── */}
+        {/* אירוע Lead בפיקסל: פעם אחת, רק עם הסכמה לשיווק, עם אותו eventId שנשלח מהשרת */}
+        <LeadPixelEvent eventId={eventId} />
 
         <Link
           href="/"
