@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+/*
+ * צבעי המותג מגיעים מ-site.config.ts (brand), דרך משתני CSS שה-layout שם על <html>.
+ * לא משנים צבעים כאן. משנים אותם ב-config.
+ * ערכי הגיבוי כאן הם רק למקרה שהמשתנים לא הוגדרו.
+ */
+:root {
+  --brand-primary: #0f766e;
+  --brand-secondary: #334155;
+  --brand-accent: #b45309;
+  --brand-background: #fafaf9;
+  --brand-text: #1e293b;
+}
+
+/* מחברים את המשתנים ל-Tailwind: bg-primary, text-brand-text וכו' */
+@theme inline {
+  --color-primary: var(--brand-primary);
+  --color-secondary: var(--brand-secondary);
+  --color-accent: var(--brand-accent);
+  --color-background: var(--brand-background);
+  --color-foreground: var(--brand-text);
+  --font-sans: var(--font-rubik), system-ui, "Segoe UI", Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--brand-background);
+    color: var(--brand-text);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* פוקוס גלוי לכל מי שמנווט במקלדת */
+  :focus-visible {
+    outline: 3px solid var(--brand-primary);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

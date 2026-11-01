@@ -1,0 +1,18 @@
+# תלויות ותוצרי בנייה
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# סודות: לעולם לא נכנסים ל-git
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel
+
+# מערכת
+.DS_Store
+npm-debug.log*

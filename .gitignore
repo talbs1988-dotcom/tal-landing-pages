@@ -2,5 +2,12 @@ node_modules/
 .DS_Store
 .env
 .env.*
+!.env.example
 *.bak
 *.tmp
+
+# תבנית האתר: תוצרי התקנה ובנייה
+plugins/tal-landing-pages/templates/site/node_modules/
+plugins/tal-landing-pages/templates/site/.next/
+plugins/tal-landing-pages/templates/site/next-env.d.ts
+*.tsbuildinfo
