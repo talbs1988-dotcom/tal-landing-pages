@@ -78,17 +78,30 @@ export async function initStatus(dir, { pageName }) {
   return status;
 }
 
+const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+
+function normalizeStage(raw) {
+  const st = isObject(raw) ? raw : {};
+  return {
+    state: typeof st.state === "string" && st.state in STATES ? st.state : "todo",
+    note: typeof st.note === "string" ? st.note : "",
+    updated: typeof st.updated === "string" ? st.updated : "",
+  };
+}
+
 export async function readStatus(dir) {
   const p = jsonPath(dir);
   if (!(await exists(p))) throw new Error(`אין כאן דף של הסיסטם: ${dir}`);
+  const broken = new Error(`קובץ המצב של הדף פגום ואי אפשר לקרוא אותו: ${p}`);
   let status;
   try {
     status = JSON.parse(await readFile(p, "utf8"));
   } catch {
-    throw new Error(`קובץ המצב של הדף פגום ואי אפשר לקרוא אותו: ${p}`);
+    throw broken;
   }
-  status.stages ??= {};
-  for (const s of STAGES) status.stages[s.id] ??= emptyStage();
+  if (!isObject(status) || !isObject(status.stages)) throw broken;
+  if (typeof status.pageName !== "string") status.pageName = "";
+  for (const s of STAGES) status.stages[s.id] = normalizeStage(status.stages[s.id]);
   return status;
 }
 
@@ -128,7 +141,19 @@ export async function listPages(root) {
     if (!e.isDirectory()) continue;
     const dir = join(base, e.name);
     if (!(await exists(jsonPath(dir)))) continue;
-    const status = await readStatus(dir);
+    let status;
+    try {
+      status = await readStatus(dir);
+    } catch {
+      pages.push({
+        dir,
+        folder: e.name,
+        pageName: null,
+        next: null,
+        error: "קובץ המצב של הדף פגום, אי אפשר לדעת איפה הדף עומד",
+      });
+      continue;
+    }
     const n = nextStage(status);
     pages.push({
       dir,

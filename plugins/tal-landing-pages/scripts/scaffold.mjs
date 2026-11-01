@@ -2,6 +2,7 @@
 import { mkdir, writeFile, readFile, readdir, access } from "node:fs/promises";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { homedir } from "node:os";
 import { initStatus } from "./status.mjs";
 
 const TEMPLATES = join(
@@ -88,9 +89,42 @@ async function writeBusinessMemory(root, businessName) {
   await writeFile(p, `${MARKER}\n\n${original}${gap}---\n\n${sections}`);
 }
 
-export async function scaffoldBusiness(root, { businessName } = {}) {
+// Business folders directly in the home folder, Desktop, Documents or
+// Downloads would mix the business with everything else on the computer.
+const NOT_A_BUSINESS_FOLDER = ["", "Desktop", "Documents", "Downloads"];
+const samePath = (a, b) =>
+  process.platform === "darwin" || process.platform === "win32"
+    ? a.toLowerCase() === b.toLowerCase()
+    : a === b;
+
+export function assertNotHomeFolder(root, home = homedir(), businessName) {
+  const here = resolve(root);
+  for (const name of NOT_A_BUSINESS_FOLDER) {
+    const banned = resolve(home, name);
+    if (samePath(here, banned))
+      throw new Error(
+        `לא יוצרים תיקיית עסק ישירות ב-${banned}. יוצרים בתוכה תיקייה בשם העסק, למשל: ${join(banned, businessName || "<שם העסק>")}`,
+      );
+  }
+}
+
+// Business folders that are direct children of `dir` (one level down only).
+export async function findBusinessRootsBelow(dir) {
+  const base = resolve(dir);
+  const entries = await readdir(base, { withFileTypes: true }).catch(() => []);
+  const found = [];
+  for (const e of entries) {
+    if (!e.isDirectory()) continue;
+    const child = join(base, e.name);
+    if (await isBusinessRoot(child)) found.push(child);
+  }
+  return found.sort((a, b) => a.localeCompare(b));
+}
+
+export async function scaffoldBusiness(root, { businessName, home } = {}) {
   if (blank(businessName)) throw new Error("חסר שם לעסק");
   businessName = businessName.trim();
+  assertNotHomeFolder(root, home, businessName);
   const here = resolve(root);
   const up = dirname(here);
   const above = up === here ? null : await findBusinessRoot(up);
@@ -124,11 +158,16 @@ async function nextPageNumber(root) {
   const entries = await readdir(join(root, "landing-pages"), {
     withFileTypes: true,
   }).catch(() => []);
-  const nums = entries
-    .filter((e) => e.isDirectory())
-    .map((e) => /^(\d+)-/.exec(e.name))
-    .filter(Boolean)
-    .map((m) => parseInt(m[1], 10));
+  // Only real pages count: NN- prefix and a status file. A "2026-backup"
+  // folder must not push the next page to 2027.
+  const nums = [];
+  for (const e of entries) {
+    const m = /^(\d+)-/.exec(e.name);
+    if (!e.isDirectory() || !m) continue;
+    if (!(await exists(join(root, "landing-pages", e.name, ".page", "status.json"))))
+      continue;
+    nums.push(parseInt(m[1], 10));
+  }
   return String((nums.length ? Math.max(...nums) : 0) + 1).padStart(2, "0");
 }
 
@@ -158,6 +197,7 @@ const USAGE = [
   "  scaffold.mjs page <תיקיית העסק> <שם הדף>",
   "  scaffold.mjs is-business <תיקייה>",
   "  scaffold.mjs find-root <תיקייה>",
+  "  scaffold.mjs find-below <תיקייה>",
 ].join("\n");
 
 class UsageError extends Error {}
@@ -165,7 +205,7 @@ class UsageError extends Error {}
 async function cli([cmd, root, ...name]) {
   const value = name.join(" ");
   if (
-    !["business", "page", "is-business", "find-root"].includes(cmd) ||
+    !["business", "page", "is-business", "find-root", "find-below"].includes(cmd) ||
     blank(root)
   )
     throw new UsageError(USAGE);
@@ -174,6 +214,8 @@ async function cli([cmd, root, ...name]) {
   else if (cmd === "page")
     console.log(await scaffoldPage(root, { pageName: value }));
   else if (cmd === "is-business") console.log(await isBusinessRoot(root));
+  else if (cmd === "find-below")
+    console.log(JSON.stringify(await findBusinessRootsBelow(root), null, 2));
   else {
     const found = await findBusinessRoot(root);
     if (!found) {

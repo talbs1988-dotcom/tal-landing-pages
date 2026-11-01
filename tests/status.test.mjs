@@ -235,3 +235,37 @@ test("CLI set keeps a note that has several words", async () => {
   assert.equal(r.status, 0, r.stderr);
   assert.equal((await readStatus(dir)).stages.copy.note, "סקשן 3 מתוך 7 אושר");
 });
+
+// ---- review round 2 ----
+async function pageWith(json) {
+  const dir = await tmpPage();
+  await mkdir(join(dir, ".page"));
+  await writeFile(join(dir, ".page", "status.json"), json);
+  return dir;
+}
+
+test("readStatus rejects a status file that is null or has no stages", async () => {
+  for (const json of ["null", "[]", '"x"', '{"pageName":"א"}', '{"stages":null}', '{"stages":[]}']) {
+    await assert.rejects(readStatus(await pageWith(json)), /קובץ המצב של הדף פגום/, json);
+  }
+});
+
+test("readStatus normalizes the shape of every stage", async () => {
+  const dir = await pageWith(
+    JSON.stringify({
+      pageName: "א",
+      stages: {
+        start: {},
+        brief: { state: "finished", note: 7, updated: null },
+        copy: null,
+        design: { state: "doing", note: "סקשן 2", updated: "2026-10-31" },
+      },
+    }),
+  );
+  const s = await readStatus(dir);
+  assert.deepEqual(s.stages.start, { state: "todo", note: "", updated: "" });
+  assert.deepEqual(s.stages.brief, { state: "todo", note: "", updated: "" });
+  assert.deepEqual(s.stages.copy, { state: "todo", note: "", updated: "" });
+  assert.deepEqual(s.stages.design, { state: "doing", note: "סקשן 2", updated: "2026-10-31" });
+  assert.match(renderMarkdown(s), /⬜ לא התחיל/);
+});

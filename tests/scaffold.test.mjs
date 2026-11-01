@@ -69,7 +69,10 @@ import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { findBusinessRoot } from "../plugins/tal-landing-pages/scripts/scaffold.mjs";
-import { listPages } from "../plugins/tal-landing-pages/scripts/status.mjs";
+import {
+  listPages,
+  initStatus,
+} from "../plugins/tal-landing-pages/scripts/status.mjs";
 
 const SCAFFOLD_CLI = fileURLToPath(
   new URL(  "../plugins/tal-landing-pages/scripts/scaffold.mjs", import.meta.url),
@@ -152,6 +155,7 @@ test("page numbering uses the full number and ignores files and other folders", 
   const first = await scaffoldPage(root, { pageName: "ראשון" });
   assert.match(first, /landing-pages[/\\]01-ראשון$/);
   await mkdir(join(lp, "99-z"));
+  await initStatus(join(lp, "99-z"), { pageName: "z" });
   const next = await scaffoldPage(root, { pageName: "הבא" });
   assert.match(next, /landing-pages[/\\]100-הבא$/);
 });
@@ -217,4 +221,99 @@ test("CLI page accepts a name with quotes as one argument", async () => {
   });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout.trim(), /landing-pages[/\\]01-צ'יפס$/);
+});
+
+// ---- review round 2 ----
+import { findBusinessRootsBelow, assertNotHomeFolder } from "../plugins/tal-landing-pages/scripts/scaffold.mjs";
+
+test("findBusinessRootsBelow finds business folders one level down only", async () => {
+  const top = await tmp();
+  await scaffoldBusiness(join(top, "הסטודיו"), { businessName: "הסטודיו" });
+  await scaffoldBusiness(join(top, "עסק ב"), { businessName: "ב" });
+  await mkdir(join(top, "סתם תיקייה"));
+  await writeFile(join(top, "קובץ.txt"), "x");
+  await scaffoldBusiness(join(top, "עמוק", "עוד", "ג"), { businessName: "ג" });
+  assert.deepEqual(await findBusinessRootsBelow(top), [
+    resolve(top, "הסטודיו"),
+    resolve(top, "עסק ב"),
+  ]);
+});
+
+test("findBusinessRootsBelow returns [] when nothing is there or the folder is missing", async () => {
+  const top = await tmp();
+  assert.deepEqual(await findBusinessRootsBelow(top), []);
+  assert.deepEqual(await findBusinessRootsBelow(join(top, "אין")), []);
+});
+
+test("CLI find-below prints a JSON array and exits 0", async () => {
+  const top = await tmp();
+  const empty = spawnSync(process.execPath, [SCAFFOLD_CLI, "find-below", top], { encoding: "utf8" });
+  assert.equal(empty.status, 0, empty.stderr);
+  assert.deepEqual(JSON.parse(empty.stdout), []);
+  await scaffoldBusiness(join(top, "הסטודיו"), { businessName: "הסטודיו" });
+  const one = spawnSync(process.execPath, [SCAFFOLD_CLI, "find-below", top], { encoding: "utf8" });
+  assert.equal(one.status, 0, one.stderr);
+  assert.deepEqual(JSON.parse(one.stdout), [resolve(top, "הסטודיו")]);
+  const usage = spawnSync(process.execPath, [SCAFFOLD_CLI, "find-below"], { encoding: "utf8" });
+  assert.equal(usage.status, 1);
+  assert.match(usage.stderr, /שימוש:/);
+});
+
+test("page numbering ignores numbered folders that are not pages", async () => {
+  const root = await tmp();
+  await scaffoldBusiness(root, { businessName: "א" });
+  await mkdir(join(root, "landing-pages", "2026-backup"));
+  const dir = await scaffoldPage(root, { pageName: "דף" });
+  assert.match(dir, /landing-pages[/\\]01-דף$/);
+});
+
+test("the business name survives in CLAUDE.md, also when merged into an existing one", async () => {
+  const fresh = await tmp();
+  await scaffoldBusiness(fresh, { businessName: "הסטודיו של דנה" });
+  assert.match(await readFile(join(fresh, "CLAUDE.md"), "utf8"), /## העסק\n\n- שם העסק: הסטודיו של דנה\n/);
+  const merged = await tmp();
+  await writeFile(join(merged, "CLAUDE.md"), "טקסט משלי\n");
+  await scaffoldBusiness(merged, { businessName: "הסטודיו של דנה" });
+  assert.match(await readFile(join(merged, "CLAUDE.md"), "utf8"), /- שם העסק: הסטודיו של דנה/);
+});
+
+test("assertNotHomeFolder refuses home, Desktop, Documents and Downloads", async () => {
+  const home = await tmp();
+  for (const p of [home, join(home, "Desktop"), join(home, "Documents"), join(home, "Downloads"), join(home, "Desktop") + "/"]) {
+    assert.throws(() => assertNotHomeFolder(p, home), /לא יוצרים תיקיית עסק ישירות ב/, p);
+  }
+  for (const p of [join(home, "Desktop", "הסטודיו"), join(home, "Projects"), await tmp()]) {
+    assert.doesNotThrow(() => assertNotHomeFolder(p, home), p);
+  }
+});
+
+test("scaffoldBusiness checks the home rule before writing anything", async () => {
+  const home = await tmp();
+  await assert.rejects(
+    scaffoldBusiness(join(home, "Desktop"), { businessName: "א", home }),
+    /תיקייה בשם העסק/,
+  );
+  await assert.rejects(stat(join(home, "Desktop", "CLAUDE.md")));
+  await assert.rejects(stat(join(home, "Desktop", "landing-pages")));
+});
+
+test("listPages flags a page with a corrupt or null status instead of crashing", async () => {
+  const root = await tmp();
+  await scaffoldBusiness(root, { businessName: "א" });
+  const good = await scaffoldPage(root, { pageName: "טוב" });
+  for (const [folder, text] of [["02-שבור", "{ לא json"], ["03-ריק", "null"]]) {
+    await mkdir(join(root, "landing-pages", folder, ".page"), { recursive: true });
+    await writeFile(join(root, "landing-pages", folder, ".page", "status.json"), text);
+  }
+  const pages = await listPages(root);
+  assert.equal(pages.length, 3);
+  assert.equal(pages[0].dir, good);
+  assert.equal(pages[0].error, undefined);
+  for (const p of pages.slice(1)) {
+    assert.equal(p.next, null);
+    assert.match(p.error, /פגום/);
+  }
+  const cli = spawnSync(process.execPath, [fileURLToPath(new URL("../plugins/tal-landing-pages/scripts/status.mjs", import.meta.url)), "list", root], { encoding: "utf8" });
+  assert.equal(cli.status, 0, cli.stderr);
+  assert.equal(JSON.parse(cli.stdout).length, 3);
 });
