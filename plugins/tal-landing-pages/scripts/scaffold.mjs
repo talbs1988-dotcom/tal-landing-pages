@@ -3,7 +3,7 @@ import { mkdir, writeFile, readFile, readdir, access, cp } from "node:fs/promise
 import { join, dirname, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { initStatus } from "./status.mjs";
+import { initStatus, readStatus } from "./status.mjs";
 
 const TEMPLATES = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -235,11 +235,55 @@ export async function scaffoldSite(pageDir, { templateDir = SITE_TEMPLATE } = {}
   return site;
 }
 
+// The template files each stage starts from: [template name, path inside the
+// page folder]. Later stages add their entries here.
+export const STAGE_FILES = {
+  brief: [
+    ["brief.md", "1-brief/brief.md"],
+    ["customer-words.md", "1-brief/customer-words.md"],
+  ],
+  copy: [],
+  design: [],
+};
+
+// Copies the stage's template files into the page folder. Never overwrites:
+// a file that is already there (even empty) is left as is and listed in `skipped`.
+export async function scaffoldStageFiles(pageDir, stageId, { templatesDir = TEMPLATES } = {}) {
+  if (blank(pageDir)) throw new Error("חסרה תיקיית הדף");
+  if (blank(stageId) || !Object.hasOwn(STAGE_FILES, stageId))
+    throw new Error(
+      `שלב לא מוכר: ${stageId ?? ""}. אפשר: ${Object.keys(STAGE_FILES).join(", ")}`,
+    );
+  const page = resolve(pageDir);
+  if (!(await exists(join(page, ".page", "status.json"))))
+    throw new Error(
+      `זו לא תיקיית דף: ${page}. תיקיית דף נוצרת עם /page-start ויש בה את .page/status.json.`,
+    );
+  const { pageName } = await readStatus(page);
+  const created = [];
+  const skipped = [];
+  for (const [tpl, target] of STAGE_FILES[stageId]) {
+    const p = join(page, target);
+    if (await exists(p)) {
+      skipped.push(p);
+      continue;
+    }
+    let text = await readFile(join(templatesDir, tpl), "utf8");
+    text = text.replaceAll("{{pageName}}", pageName || basename(page));
+    await mkdir(dirname(p), { recursive: true });
+    // "wx": if the file appeared in the meantime, fail instead of overwriting it.
+    await writeFile(p, text, { flag: "wx" });
+    created.push(p);
+  }
+  return { created, skipped };
+}
+
 const USAGE = [
   "שימוש:",
   "  scaffold.mjs business <תיקיית העסק> <שם העסק>",
   "  scaffold.mjs page <תיקיית העסק> <שם הדף>",
   "  scaffold.mjs site <תיקיית הדף>",
+  "  scaffold.mjs stage-files <תיקיית הדף> <brief|copy|design>",
   "  scaffold.mjs is-business <תיקייה>",
   "  scaffold.mjs find-root <תיקייה>",
   "  scaffold.mjs find-below <תיקייה>",
@@ -250,7 +294,7 @@ class UsageError extends Error {}
 async function cli([cmd, root, ...name]) {
   const value = name.join(" ");
   if (
-    !["business", "page", "site", "is-business", "find-root", "find-below"].includes(cmd) ||
+    !["business", "page", "site", "stage-files", "is-business", "find-root", "find-below"].includes(cmd) ||
     blank(root)
   )
     throw new UsageError(USAGE);
@@ -259,6 +303,10 @@ async function cli([cmd, root, ...name]) {
   else if (cmd === "page")
     console.log(await scaffoldPage(root, { pageName: value }));
   else if (cmd === "site") console.log(await scaffoldSite(root));
+  else if (cmd === "stage-files") {
+    if (blank(value)) throw new UsageError(USAGE);
+    console.log(JSON.stringify(await scaffoldStageFiles(root, value), null, 2));
+  }
   else if (cmd === "is-business") console.log(await isBusinessRoot(root));
   else if (cmd === "find-below")
     console.log(JSON.stringify(await findBusinessRootsBelow(root), null, 2));
