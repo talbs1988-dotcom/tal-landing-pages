@@ -280,3 +280,11 @@ test("CLI: a page without a site gets a Hebrew error", async () => {
 });
 
 const TEMPLATE_TEXT = await readFile(TEMPLATE_CONFIG, "utf8");
+
+test("noticeAddress rejects an email address", async () => {
+  const { FIELDS } = await import("../plugins/tal-landing-pages/scripts/business-sync.mjs");
+  const f = FIELDS.find((x) => x.path === "legal.noticeAddress");
+  assert.ok(f.check, "noticeAddress has a check");
+  assert.ok(f.check("במייל rotem@example.com").reason);
+  assert.equal(f.check('ת"ד 123, תל אביב').value, 'ת"ד 123, תל אביב');
+});

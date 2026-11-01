@@ -50,6 +50,13 @@ function checkEmail(v) {
   return { reason: "כתובת מייל, למשל dana@example.co.il" };
 }
 
+function checkPostal(v) {
+  const s = v.trim();
+  if (s.includes("@") || /^https?:/i.test(s))
+    return { reason: "מען למשלוח דואר (ת\"ד או רחוב ועיר), לא מייל ולא אתר" };
+  return { value: s };
+}
+
 function checkPhone(v) {
   const s = v.trim();
   const digits = s.replace(/^\+972/, "0").replace(/\D/g, "");
@@ -105,6 +112,7 @@ export const FIELDS = [
   {
     label: "מען להודעות ביטול והחזרות",
     path: "legal.noticeAddress",
+    check: checkPostal,
     none: "",
     needed: noAddress,
     neededWhen: "רק אם לא מפרסמים כתובת",
