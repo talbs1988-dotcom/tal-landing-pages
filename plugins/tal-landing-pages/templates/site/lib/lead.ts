@@ -210,16 +210,41 @@ export type WebhookPayload = {
   marketingConsent: boolean;
 } & Tracking & { eventId: string; pageUrl: string };
 
+/**
+ * הגנה מהזרקת נוסחה לגיליון (Google Sheets, Excel, ייצוא CSV):
+ * ערך שמתחיל ב-= + - @ או טאב מקבל גרש ' בהתחלה, כדי שיוצג כטקסט ולא ירוץ כנוסחה.
+ */
+export function neutralizeFormula(v: string): string {
+  return /^[=+\-@\t]/.test(v) ? `'${v}` : v;
+}
+
+/**
+ * השדות החופשיים שנוטרלו בוובהוק. לא נוגעים בטלפון (ספרות בלבד), במייל ובמזהים
+ * (id, eventId, fbclid, fbp, fbc), כי Make מעביר אותם הלאה כמו שהם.
+ */
+const FREE_TEXT_TRACKING = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "referrer",
+  "landingPath",
+  "source",
+] as const;
+
 export function toWebhookPayload(record: LeadRecord): WebhookPayload {
   const { name, email, phone, marketingConsent } = record.lead;
+  const tracking = { ...record.tracking };
+  for (const k of FREE_TEXT_TRACKING) tracking[k] = neutralizeFormula(tracking[k]);
   return {
     id: record.id,
     createdAt: record.createdAt,
-    name,
+    name: neutralizeFormula(name),
     email,
     phone,
     marketingConsent,
-    ...record.tracking,
+    ...tracking,
     eventId: record.eventId,
     pageUrl: record.pageUrl,
   };

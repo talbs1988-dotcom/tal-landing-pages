@@ -33,8 +33,24 @@ const TRACKING_KEYS = [
   "landingPath",
 ];
 
+/** כמו neutralizeFormula ב-lib/lead.ts: גרש לפני ערך שמתחיל ב-= + - @ או טאב */
+function neutralizeFormula(v) {
+  return typeof v === "string" && /^[=+\-@\t]/.test(v) ? `'${v}` : v;
+}
+
+const FREE_TEXT_TRACKING = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "referrer",
+  "landingPath",
+  "source",
+];
+
 /**
- * אותו מבנה כמו toWebhookPayload ב-lib/lead.ts. בדיקה (tests/resend-leads.test.ts)
+ * אותו מבנה כמו toWebhookPayload ב-lib/lead.ts (כולל הגנה מהזרקת נוסחה). בדיקה (tests/resend-leads.test.ts)
  * מוודאת ששתי הפונקציות מחזירות בדיוק אותו דבר. משנים אחת ← משנים גם את השנייה.
  */
 export function toWebhookPayload(record) {
@@ -42,10 +58,11 @@ export function toWebhookPayload(record) {
   const tracking = {};
   for (const k of TRACKING_KEYS) tracking[k] = record.tracking?.[k] ?? "";
   tracking.source = record.tracking?.source ?? "";
+  for (const k of FREE_TEXT_TRACKING) tracking[k] = neutralizeFormula(tracking[k]);
   return {
     id: record.id,
     createdAt: record.createdAt,
-    name,
+    name: neutralizeFormula(name),
     email,
     phone,
     marketingConsent,
