@@ -17,6 +17,7 @@ import { TODO } from "@/lib/todo";
 
 const STORAGE_KEY = "edit-mode-v1";
 const ENDPOINT = "/api/dev-edit";
+const HINT_MS = 6000;
 
 type Status = { kind: "saving" | "saved" | "error"; text: string } | null;
 
@@ -66,6 +67,7 @@ html[data-edit-mode] [data-edit][data-edit-error] {
 export function EditMode() {
   const [on, setOn] = useState(false);
   const [status, setStatus] = useState<Status>(null);
+  const [hint, setHint] = useState(false);
   const hideTimer = useRef<number | undefined>(undefined);
 
   // המצב נשמר ללשונית (sessionStorage), כדי שרענון לא יכבה אותו
@@ -262,11 +264,19 @@ export function EditMode() {
 
   useEffect(() => () => window.clearTimeout(hideTimer.current), []);
 
+  // ההסבר הקצר מופיע כמה שניות אחרי שמדליקים, ונעלם כדי לא להסתיר את הדף (במובייל הוא יושב על הכותרת)
+  useEffect(() => {
+    if (!hint) return;
+    const id = window.setTimeout(() => setHint(false), HINT_MS);
+    return () => window.clearTimeout(id);
+  }, [hint]);
+
   function toggle() {
     // אם מישהו באמצע עריכה, היציאה מהשדה שומרת לפני שהמצב נכבה
     const active = document.activeElement;
     if (active instanceof HTMLElement && active.closest("[data-edit]"))
       active.blur();
+    setHint(!on);
     setOn((v) => !v);
     if (on) setStatus(null);
   }
@@ -274,14 +284,14 @@ export function EditMode() {
   return (
     <div
       dir="rtl"
-      className="fixed right-3 top-3 z-[60] flex flex-col items-start gap-2"
+      className="pointer-events-none fixed right-3 top-3 z-[60] flex flex-col items-start gap-2"
     >
       {on && <style>{STYLE}</style>}
       <button
         type="button"
         aria-pressed={on}
         onClick={toggle}
-        className={`inline-flex min-h-11 items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-semibold shadow-lg ${
+        className={`pointer-events-auto inline-flex min-h-11 items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-semibold shadow-lg ${
           on
             ? "border-primary bg-primary text-white"
             : "border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
@@ -290,7 +300,7 @@ export function EditMode() {
         <span aria-hidden="true">✎</span>
         מצב עריכה
       </button>
-      {on && (
+      {on && hint && (
         <p className="max-w-60 rounded-lg bg-slate-900 px-3 py-2 text-xs leading-relaxed text-white shadow-lg">
           לוחצים על טקסט ומקלידים. Enter או יציאה מהשדה שומרים, Esc מבטל.
         </p>
