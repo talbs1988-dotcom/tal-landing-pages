@@ -126,7 +126,7 @@ export default function TermsPage() {
         <p>
           החוק קובע שזכות הביטול לא חלה על חלק מהמוצרים והשירותים, למשל מוצרים
           שיוצרו במיוחד לפי ההזמנה שלכם, ומידע או תוכן דיגיטלי שאפשר להעתיק או
-          להוריד. אצלנו זה חל על: {display(legal.cancellationExceptions)}
+          להוריד. אצלנו זה חל על: {display(legal.cancellationExceptions)}.
         </p>
 
         <h3 className="pt-2 text-xl font-semibold">איך מבטלים</h3>

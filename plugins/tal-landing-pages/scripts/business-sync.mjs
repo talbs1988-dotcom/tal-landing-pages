@@ -123,6 +123,7 @@ export const FIELDS = [
     label: "מוצרים או שירותים שאי אפשר לבטל",
     path: "legal.cancellationExceptions",
     none: "אין",
+    stripDot: true,
   },
   {
     label: "רכיבים באתר שעוד לא נגישים",
