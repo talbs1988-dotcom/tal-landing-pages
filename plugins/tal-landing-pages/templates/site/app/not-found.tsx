@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { noindex } from "@/lib/seo";
 
 // Next.js מחזיר 404 ומוסיף noindex לבד
 export const metadata: Metadata = {
   title: "הדף לא נמצא",
-  ...noindex,
 };
 
 export default function NotFound() {

@@ -118,7 +118,20 @@ export function CookieBanner() {
 
   function close() {
     setOpen(false);
-    returnFocus.current?.focus();
+    if (returnFocus.current) {
+      returnFocus.current.focus();
+    } else {
+      // נפתח לבד (לא מכפתור): מחזירים את הפוקוס לתחילת התוכן, כדי שה-Tab הבא
+      // ימשיך מהדף ולא מסוף העמוד (שם היה הבאנר)
+      const main = document.getElementById("main");
+      if (main) {
+        if (!main.hasAttribute("tabindex")) {
+          main.setAttribute("tabindex", "-1");
+          main.classList.add("outline-none");
+        }
+        main.focus({ preventScroll: true });
+      }
+    }
     returnFocus.current = null;
   }
 
