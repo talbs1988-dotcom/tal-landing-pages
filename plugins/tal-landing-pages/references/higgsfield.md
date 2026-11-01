@@ -57,7 +57,7 @@
 - פותחים כל תוצאה עם Read, ומתארים בקצרה מה טוב ומה לא בכל אחת: פנים, ידיים, טקסט שהשתרבב, התאמה לצבעים.
 - בעל העסק בוחר. רק הנבחרת נשמרת ב-`brand/photos/ai/`, בשם שמסביר מה יש בה (`hero-studio-morning.png`).
 - משם היא עוברת עיבוד כמו כל תמונה אחרת:
-  `npm run images -- '../../../brand/photos/ai/hero-studio-morning.png' hero-studio --role hero`
+  `npm run images -- '../../../brand/photos/ai/hero-studio-morning.png' herostudio --role hero`
 - ב-`2-copy/images-list.md` רושמים ליד התמונה שהיא נוצרה ב-AI, ובאיזה מודל.
 
 תמונה שנוצרה ב-AI לא מוצגת כאילו היא תיעוד אמיתי: לא כלקוח, לא כ"לפני ואחרי", לא כתוצאה של המוצר ולא ליד המלצה. היא אווירה, לא הוכחה.
