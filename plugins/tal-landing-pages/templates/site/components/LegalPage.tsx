@@ -111,14 +111,21 @@ export function legalContent(
   template: { intro?: ReactNode; sections: LegalSectionContent[] },
 ): { intro?: ReactNode; sections: LegalSectionContent[] } {
   const { own, additions } = readLegalText(slug);
-  if (own)
+  if (own) {
+    const sections = textSections(own);
+    // מקשרים מבחוץ ל-/terms#cancellation: הסעיף הראשון שמדבר על ביטול מקבל את המזהה
+    if (slug === "terms") {
+      const cancel = sections.find((s) => s.title.includes("ביטול"));
+      if (cancel) cancel.id = "cancellation";
+    }
     return {
       intro: own.intro.length > 0 ? <Blocks blocks={own.intro} /> : undefined,
       sections: [
-        ...textSections(own),
+        ...sections,
         { id: "own-business", title: "פרטי העסק", body: <BusinessDetails /> },
       ],
     };
+  }
   if (additions)
     return {
       intro: template.intro,

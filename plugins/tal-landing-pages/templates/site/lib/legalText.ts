@@ -128,9 +128,12 @@ export function parseLegalText(
   return result;
 }
 
-/** התיקייה של הנוסחים. נקראת בזמן הבנייה (הדפים סטטיים), מתוך שורש האתר */
+/**
+ * התיקייה של הנוסחים. נקראת בזמן הבנייה (הדפים סטטיים), מתוך שורש האתר.
+ * LEGAL_TEXT_DIR רק לבדיקות: הן בודקות את התבנית, ולא את הנוסח שבעל העסק הביא.
+ */
 export function legalTextDir(): string {
-  return join(process.cwd(), "content", "legal");
+  return process.env.LEGAL_TEXT_DIR || join(process.cwd(), "content", "legal");
 }
 
 function readOptional(path: string): string | null {

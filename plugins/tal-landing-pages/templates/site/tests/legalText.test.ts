@@ -157,11 +157,14 @@ afterAll(() => {
 });
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 function inSite(files: Record<string, string>) {
   setFiles(files);
   vi.spyOn(process, "cwd").mockReturnValue(root);
+  // בשאר הבדיקות LEGAL_TEXT_DIR מצביע על תיקייה ריקה (vitest.config.mts)
+  vi.stubEnv("LEGAL_TEXT_DIR", "");
 }
 
 describe("readLegalText: הקבצים", () => {
@@ -214,7 +217,7 @@ describe("הדפים עם נוסח מ-content/legal/", () => {
         "- סעיף אחד",
         "- סעיף שני",
         "",
-        "## ביטול",
+        "## משלוחים",
         "לפי החוק.",
       ].join("\n"),
     });
@@ -236,6 +239,22 @@ describe("הדפים עם נוסח מ-content/legal/", () => {
     expect(html.indexOf('id="own-2"')).toBeLessThan(
       html.indexOf('id="own-business"'),
     );
+  });
+
+  it("החלפה מלאה של התקנון: הסעיף הראשון על ביטול מקבל את #cancellation", () => {
+    inSite({
+      "terms.md": "## כללי\nטקסט.\n\n## ביטול עסקה\nלפי החוק.\n\n## ביטול מנוי\nגם.",
+    });
+    const html = render("terms");
+    expect(html.match(/id="cancellation"/g)).toHaveLength(1);
+    expect(html).toContain('href="#cancellation"');
+    expect(html).toContain('id="own-3"');
+  });
+
+  it("בלי LEGAL_TEXT_DIR ריק, הבדיקות לא רואות את content/legal של הדף", () => {
+    setFiles({ "terms.md": "## שלי\nטקסט שלי." });
+    vi.spyOn(process, "cwd").mockReturnValue(root);
+    expect(render("terms")).not.toContain("טקסט שלי.");
   });
 
   it("אין HTML גולמי: תגיות מוצגות כטקסט", () => {

@@ -8,5 +8,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // הבדיקות בודקות את נוסח התבנית, גם בדף שבעל העסק שם בו נוסח משלו (content/legal/)
+    env: { LEGAL_TEXT_DIR: "tests/no-legal-texts" },
   },
 });
