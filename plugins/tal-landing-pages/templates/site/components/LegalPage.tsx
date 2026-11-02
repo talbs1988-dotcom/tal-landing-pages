@@ -12,11 +12,20 @@ import {
   visibleSections,
   type SectionDef,
 } from "@/lib/legal";
+import {
+  readLegalText,
+  type Inline,
+  type LegalBlock,
+  type LegalSlug,
+  type LegalText,
+} from "@/lib/legalText";
 
 /*
  * המבנה האחיד של כל הדפים המשפטיים: כותרת, "עודכן לאחרונה" מה-config,
  * תוכן עניינים עם קישורים לסעיפים, והסעיפים עצמם.
  * הטקסטים עצמם בדפים (app/privacy וכו'). פרטי העסק רק מ-site.config.ts.
+ * נוסח משלכם ב-content/legal/<slug>.md מחליף את הסעיפים של התבנית,
+ * ו-<slug>.additions.md מוסיף סעיפים אחריהם (lib/legalText.ts).
  */
 
 export type LegalSectionContent = {
@@ -51,15 +60,85 @@ export function buildSections<const T extends readonly SectionDef[]>(
   }));
 }
 
+/** קטעי שורה ← טקסט, ומודגש ב-strong. בלי HTML גולמי: React מקודד הכול */
+function InlineText({ inlines }: { inlines: Inline[] }) {
+  return (
+    <>
+      {inlines.map((p, i) =>
+        p.strong ? <strong key={i}>{p.text}</strong> : <span key={i}>{p.text}</span>,
+      )}
+    </>
+  );
+}
+
+function Blocks({ blocks }: { blocks: LegalBlock[] }) {
+  return (
+    <>
+      {blocks.map((b, i) =>
+        b.kind === "p" ? (
+          <p key={i}>
+            <InlineText inlines={b.inlines} />
+          </p>
+        ) : (
+          <Bullets key={i}>
+            {b.items.map((item, j) => (
+              <li key={j}>
+                <InlineText inlines={item} />
+              </li>
+            ))}
+          </Bullets>
+        ),
+      )}
+    </>
+  );
+}
+
+function textSections(text: LegalText): LegalSectionContent[] {
+  return text.sections.map((s) => ({
+    id: s.id,
+    title: s.title,
+    body: <Blocks blocks={s.blocks} />,
+  }));
+}
+
+/**
+ * מה הדף מציג בפועל: הסעיפים של התבנית, או הנוסח מ-content/legal/.
+ * בהחלפה מלאה: הפתיח והסעיפים מהקובץ, ובסוף "פרטי העסק" מה-config,
+ * כדי שפרטי העסק תמיד יופיעו ויהיו זהים לשאר האתר.
+ */
+export function legalContent(
+  slug: LegalSlug,
+  template: { intro?: ReactNode; sections: LegalSectionContent[] },
+): { intro?: ReactNode; sections: LegalSectionContent[] } {
+  const { own, additions } = readLegalText(slug);
+  if (own)
+    return {
+      intro: own.intro.length > 0 ? <Blocks blocks={own.intro} /> : undefined,
+      sections: [
+        ...textSections(own),
+        { id: "own-business", title: "פרטי העסק", body: <BusinessDetails /> },
+      ],
+    };
+  if (additions)
+    return {
+      intro: template.intro,
+      sections: [...template.sections, ...textSections(additions)],
+    };
+  return template;
+}
+
 export function LegalPage({
+  slug,
   title,
-  intro,
-  sections,
+  ...template
 }: {
+  /** איזה דף: קובע אילו קבצים ב-content/legal/ שלו */
+  slug: LegalSlug;
   title: string;
   intro?: ReactNode;
   sections: LegalSectionContent[];
 }) {
+  const { intro, sections } = legalContent(slug, template);
   const updated = site.page.lastUpdated;
   const date = parseIsoDate(updated);
 
