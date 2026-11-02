@@ -143,6 +143,7 @@ export default function DataDeletionPage() {
         מטא דורשת כתובת לדף הזה בהגדרות האפליקציה/הפיקסל: <url>/data-deletion
       */}
       <LegalPage
+        slug="data-deletion"
         title="מחיקת נתונים"
         intro={
           <p>

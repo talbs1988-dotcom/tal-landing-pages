@@ -263,7 +263,7 @@ test("CLI: sync-business prints JSON with updated and missing", async () => {
   });
   assert.equal(r.status, 0, r.stderr);
   const out = JSON.parse(r.stdout);
-  assert.deepEqual(Object.keys(out).sort(), ["missing", "updated"]);
+  assert.deepEqual(Object.keys(out).sort(), ["missing", "texts", "updated"]);
   assert.ok(out.updated.length > 10);
 });
 
@@ -287,4 +287,187 @@ test("noticeAddress rejects an email address", async () => {
   assert.ok(f.check, "noticeAddress has a check");
   assert.ok(f.check("במייל rotem@example.com").reason);
   assert.equal(f.check('ת"ד 123, תל אביב').value, 'ת"ד 123, תל אביב');
+});
+// ---------------------------------------------------------------------------
+// The legal texts: legal/texts/ of the business → site/content/legal/ of the page
+// ---------------------------------------------------------------------------
+
+import { existsSync } from "node:fs";
+import { rm } from "node:fs/promises";
+import {
+  syncLegalTexts,
+  LEGAL_TEXT_FILES,
+  LEGAL_TEXT_SLUGS,
+} from "../plugins/tal-landing-pages/scripts/business-sync.mjs";
+
+async function textsFixture(businessFiles = {}, siteFiles = {}) {
+  const f = await fixture(FILLED);
+  const texts = join(f.root, "legal", "texts");
+  const site = join(f.page, "site", "content", "legal");
+  await mkdir(texts, { recursive: true });
+  await mkdir(site, { recursive: true });
+  for (const [n, t] of Object.entries(businessFiles))
+    await writeFile(join(texts, n), t);
+  for (const [n, t] of Object.entries(siteFiles))
+    await writeFile(join(site, n), t);
+  return { ...f, texts, site };
+}
+
+test("legal texts: the 8 names, and the same slugs as the site template", async () => {
+  assert.equal(LEGAL_TEXT_FILES.length, 8);
+  const src = await readFile(
+    join(PLUGIN, "templates", "site", "lib", "legalText.ts"),
+    "utf8",
+  );
+  const m = /LEGAL_SLUGS\s*=\s*\[([^\]]*)\]/.exec(src);
+  assert.ok(m, "LEGAL_SLUGS in lib/legalText.ts");
+  const slugs = [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+  assert.deepEqual(slugs, LEGAL_TEXT_SLUGS);
+});
+
+test("legal texts: a new business gets legal/texts/", async () => {
+  const { root } = await fixture();
+  assert.ok(existsSync(join(root, "legal", "texts")));
+});
+
+test("legal texts: sync copies the business's texts into the site", async () => {
+  const { page, site } = await textsFixture({
+    "terms.md": "## תקנון שלי\nטקסט",
+    "privacy.additions.md": "## תוספת\nעוד",
+  });
+  const out = await syncBusiness(page, { findBusinessRoot });
+  assert.deepEqual(out.texts, {
+    copied: ["terms.md", "privacy.additions.md"],
+    removed: [],
+  });
+  assert.equal(
+    await readFile(join(site, "terms.md"), "utf8"),
+    "## תקנון שלי\nטקסט",
+  );
+  assert.equal(
+    await readFile(join(site, "privacy.additions.md"), "utf8"),
+    "## תוספת\nעוד",
+  );
+});
+
+test("legal texts: the site folder is created when it is not there", async () => {
+  const { page, site } = await textsFixture({ "accessibility.md": "## א\nב" });
+  await rm(site, { recursive: true });
+  const out = await syncBusiness(page, { findBusinessRoot });
+  assert.deepEqual(out.texts.copied, ["accessibility.md"]);
+  assert.equal(
+    await readFile(join(site, "accessibility.md"), "utf8"),
+    "## א\nב",
+  );
+});
+
+test("legal texts: a changed business text overwrites the site's copy, and an unchanged one is not reported", async () => {
+  const { page, texts, site } = await textsFixture(
+    { "terms.md": "## חדש\nנוסח חדש" },
+    { "terms.md": "## ישן\nנוסח ישן" },
+  );
+  const out = await syncBusiness(page, { findBusinessRoot });
+  assert.deepEqual(out.texts.copied, ["terms.md"]);
+  assert.equal(
+    await readFile(join(site, "terms.md"), "utf8"),
+    "## חדש\nנוסח חדש",
+  );
+  const again = await syncBusiness(page, { findBusinessRoot });
+  assert.deepEqual(again.texts, { copied: [], removed: [] });
+  await writeFile(join(texts, "terms.md"), "## שלישי\nעוד שינוי");
+  const third = await syncBusiness(page, { findBusinessRoot });
+  assert.deepEqual(third.texts.copied, ["terms.md"]);
+  assert.equal(
+    await readFile(join(site, "terms.md"), "utf8"),
+    "## שלישי\nעוד שינוי",
+  );
+});
+
+test("legal texts: a text that is no longer at the business is removed from the site", async () => {
+  const { page, site } = await textsFixture(
+    { "terms.md": "## נשאר\nא" },
+    {
+      "terms.md": "## נשאר\nא",
+      "data-deletion.md": "## ישן\nב",
+      "privacy.additions.md": "## ישן\nג",
+    },
+  );
+  const out = await syncBusiness(page, { findBusinessRoot });
+  assert.deepEqual(out.texts, {
+    copied: [],
+    removed: ["privacy.additions.md", "data-deletion.md"],
+  });
+  assert.deepEqual(await readdir(site), ["terms.md"]);
+});
+
+test("legal texts: no legal/texts/ folder is not an error, and texts in the site are removed", async () => {
+  const { page, texts, site } = await textsFixture(
+    {},
+    { "terms.md": "## ישן\nא" },
+  );
+  await rm(texts, { recursive: true });
+  const out = await syncBusiness(page, { findBusinessRoot });
+  assert.deepEqual(out.texts, { copied: [], removed: ["terms.md"] });
+  assert.deepEqual(await readdir(site), []);
+});
+
+test("legal texts: no texts anywhere → nothing copied, nothing removed, no folder created", async () => {
+  const { page, site } = await textsFixture();
+  await rm(site, { recursive: true });
+  const out = await syncBusiness(page, { findBusinessRoot });
+  assert.deepEqual(out.texts, { copied: [], removed: [] });
+  assert.equal(existsSync(site), false);
+});
+
+test("legal texts: other files on either side are not touched", async () => {
+  const { page, site } = await textsFixture(
+    {
+      "notes.md": "הערות שלי",
+      "terms.draft.md": "טיוטה",
+    },
+    { "README.md": "לא לגעת", "copy-extra.md": "גם לא" },
+  );
+  const out = await syncBusiness(page, { findBusinessRoot });
+  assert.deepEqual(out.texts, { copied: [], removed: [] });
+  assert.deepEqual((await readdir(site)).sort(), [
+    "README.md",
+    "copy-extra.md",
+  ]);
+  assert.equal(await readFile(join(site, "README.md"), "utf8"), "לא לגעת");
+});
+
+test("legal texts: syncLegalTexts works on its own, without business.md", async () => {
+  const root = await mkdtemp(join(tmpdir(), "texts-"));
+  await mkdir(join(root, "biz", "legal", "texts"), { recursive: true });
+  await writeFile(join(root, "biz", "legal", "texts", "privacy.md"), "## א\nב");
+  const out = await syncLegalTexts(join(root, "biz"), join(root, "site"));
+  assert.deepEqual(out, { copied: ["privacy.md"], removed: [] });
+  assert.equal(
+    await readFile(
+      join(root, "site", "content", "legal", "privacy.md"),
+      "utf8",
+    ),
+    "## א\nב",
+  );
+});
+
+test("CLI: sync-business prints the texts it copied", async () => {
+  const { page } = await textsFixture({ "terms.additions.md": "## תוספת\nא" });
+  const r = spawnSync(process.execPath, [SCAFFOLD_CLI, "sync-business", page], {
+    encoding: "utf8",
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(JSON.parse(r.stdout).texts, {
+    copied: ["terms.additions.md"],
+    removed: [],
+  });
+});
+
+test("legal texts: content/legal/ and its files are not excluded from the site", async () => {
+  const { isExcludedFromSite } = await import("../plugins/tal-landing-pages/scripts/scaffold.mjs");
+  for (const name of ["content", "legal", ...LEGAL_TEXT_FILES])
+    assert.equal(isExcludedFromSite(name), false, name);
+  const ignore = await readFile(join(PLUGIN, "templates", "site", ".vercelignore"), "utf8");
+  for (const line of ignore.split("\n").filter((l) => l.trim() && !l.startsWith("#")))
+    assert.doesNotMatch(line, /content|legal|\.md\b|^\*$/, line);
 });

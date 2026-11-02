@@ -7,7 +7,10 @@
 // Anything it cannot find as a plain one-line value is left alone and listed
 // as missing. The result is checked before it is written, and written
 // atomically (temp file + rename).
-import { readFile, writeFile, rename, access } from "node:fs/promises";
+//
+// It also mirrors the business's own legal texts, legal/texts/<slug>.md and
+// <slug>.additions.md, into site/content/legal/ of the page (syncLegalTexts).
+import { readFile, writeFile, rename, access, mkdir, unlink } from "node:fs/promises";
 import { join, resolve, dirname, basename } from "node:path";
 
 // ---------------------------------------------------------------------------
@@ -456,9 +459,63 @@ async function writeAtomic(path, text) {
   await rename(tmp, path);
 }
 
+// ---------------------------------------------------------------------------
+// The legal texts: legal/texts/ of the business → site/content/legal/ of the page
+// ---------------------------------------------------------------------------
+
+// The only names that move: per page, a full replacement and additions.
+// Must match LEGAL_SLUGS in templates/site/lib/legalText.ts.
+export const LEGAL_TEXT_SLUGS = ["terms", "privacy", "accessibility", "data-deletion"];
+export const LEGAL_TEXT_FILES = LEGAL_TEXT_SLUGS.flatMap((s) => [
+  `${s}.md`,
+  `${s}.additions.md`,
+]);
+
+async function readOptional(path) {
+  try {
+    return await readFile(path, "utf8");
+  } catch (e) {
+    if (e.code === "ENOENT") return null;
+    throw e;
+  }
+}
+
 /**
- * legal/business.md → <pageDir>/site/site.config.ts.
- * Returns { updated: [{field,label,value}], missing: [{field,label,reason?}] }.
+ * Mirrors the 8 legal text files from <businessRoot>/legal/texts/ to
+ * <siteDir>/content/legal/. At the business → copied over the site's copy
+ * (only when the content differs, so a second run reports nothing). Not at
+ * the business but in the site → removed. Any other file in either folder is
+ * not touched. No legal/texts/ folder = no texts, not an error.
+ * Returns { copied: [name], removed: [name] }.
+ */
+export async function syncLegalTexts(businessRoot, siteDir) {
+  const from = join(businessRoot, "legal", "texts");
+  const to = join(siteDir, "content", "legal");
+  const copied = [];
+  const removed = [];
+  for (const name of LEGAL_TEXT_FILES) {
+    const [source, target] = await Promise.all([
+      readOptional(join(from, name)),
+      readOptional(join(to, name)),
+    ]);
+    if (source !== null) {
+      if (source === target) continue;
+      await mkdir(to, { recursive: true });
+      await writeAtomic(join(to, name), source);
+      copied.push(name);
+    } else if (target !== null) {
+      await unlink(join(to, name));
+      removed.push(name);
+    }
+  }
+  return { copied, removed };
+}
+
+/**
+ * legal/business.md → <pageDir>/site/site.config.ts, and legal/texts/ →
+ * <pageDir>/site/content/legal/.
+ * Returns { updated: [{field,label,value}], missing: [{field,label,reason?}],
+ * texts: { copied: [name], removed: [name] } }.
  */
 export async function syncBusiness(pageDir, { findBusinessRoot }) {
   const page = resolve(pageDir);
@@ -482,5 +539,6 @@ export async function syncBusiness(pageDir, { findBusinessRoot }) {
   const { values, updated, missing } = planSync(businessText, configText);
   if (values.size > 0)
     await writeAtomic(configPath, applyValues(configText, values));
-  return { updated, missing };
+  const texts = await syncLegalTexts(root, join(page, "site"));
+  return { updated, missing, texts };
 }

@@ -299,6 +299,7 @@ export default function PrivacyPage() {
         ההערה הזו לא מוצגת לגולשים. כל פרט עסקי מגיע מ-site.config.ts.
       */}
       <LegalPage
+        slug="privacy"
         title="מדיניות פרטיות"
         intro={
           <p>

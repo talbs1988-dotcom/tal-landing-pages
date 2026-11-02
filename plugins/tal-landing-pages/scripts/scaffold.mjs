@@ -18,6 +18,8 @@ export const BUSINESS_DIRS = [
   "brand/photos/ai",
   "brand/proof",
   "legal",
+  // The business's own legal texts (optional). sync-business copies them to each page.
+  "legal/texts",
   "landing-pages",
 ];
 export const PAGE_DIRS = [

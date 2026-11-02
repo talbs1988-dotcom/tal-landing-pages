@@ -127,6 +127,7 @@ export default function AccessibilityPage() {
         שלא עומד בה (וידאו בלי כתוביות, למשל), לעדכן כאן וב-legal.accessibilityLimitations.
       */}
       <LegalPage
+        slug="accessibility"
         title="הצהרת נגישות"
         intro={<p>ההצהרה מתארת את הנגישות של האתר של {name}.</p>}
         sections={sections}

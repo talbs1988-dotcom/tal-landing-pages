@@ -199,6 +199,7 @@ export default function TermsPage() {
         הסעיף #cancellation חייב להישאר עם המזהה הזה: מקשרים אליו מבחוץ.
       */}
       <LegalPage
+        slug="terms"
         title="תקנון ותנאי שימוש"
         intro={
           <p>
