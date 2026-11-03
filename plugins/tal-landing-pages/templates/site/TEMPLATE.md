@@ -141,7 +141,7 @@ npm run resend-leads -- ~/Downloads/leads             # שואל את כתובת
 | 3 עיצוב | `content/copy.json` (מתוך `2-copy/copy.md`), `app/page.tsx`, `components/sections/`, `brand` ו-`page` ב-`site.config.ts`, ומ-`form`: השדות (`email`, `phone`), `submitLabel` ו-`marketingConsentText`. **לא** `privacyNotice` |
 | 4 משפטי ונגישות | `business`, `legal` ו-`collects` ב-`site.config.ts`, `form.privacyNotice` (נקבע רק כאן), והדפים המשפטיים (`app/privacy` וכו') |
 | 5 בדיקה | לא עורך תוכן. מריץ `npm run check` (כולל `check:todo` ו-`build`) ובדיקה בדפדפן, ומתקן |
-| 6 עלייה לאוויר | הגדרות הפרויקט והדומיין ב-Vercel, ו-`page.url` ב-`site.config.ts` |
+| 6 עלייה לאוויר | מאגר פרטי ב-GitHub שמחובר ל-Vercel, הגדרות הפרויקט והדומיין ב-Vercel, ו-`page.url` ב-`site.config.ts` |
 | 7 חיבורים | `WEBHOOK_URL`, Blob ופיקסל: משתני סביבה ב-Vercel בלבד, לא בקוד |
 
 הדפים המשפטיים הם טיוטה לבדיקת עורך דין. לא מכריזים עליהם כסופיים.
@@ -233,6 +233,8 @@ npm run resend-leads -- ~/Downloads/leads             # שואל את כתובת
 
 השמות ב-`.env.example` (בלי ערכים). את הערכים מגדירים רק ב-Vercel. אין לקרוא, להדפיס או לשמור קבצי `.env`.
 
+**שומר הסודות.** האתר נשמר במאגר פרטי ב-GitHub, ו-Vercel מעלה ממנו. `scripts/secret-guard.mjs` רץ לבד לפני כל שמירה ב-git ולפני כל העלאה (דרך `.githooks`, שמתחבר ב-`npm install`), וחוסם קבצי סביבה, `.vercel`, מפתחות, גיבויי לידים, וכל דבר שנראה כמו קוד סודי. לא עוקפים אותו (בלי `--no-verify`). הצעדים המלאים: `references/github.md` בסיסטם.
+
 | משתנה                       | מה הוא עושה                                                                        |
 | --------------------------- | ---------------------------------------------------------------------------------- |
 | `WEBHOOK_URL`               | הכתובת (Make) שמקבלת כל ליד                                                        |
@@ -258,6 +260,7 @@ npm run check:todo  # מה נשאר למלא (קובץ:שורה לכל חוסר,
 npm run check       # כל הבדיקות בלי דפדפן, JSON אחד (ראו "npm run check" למטה)
 npm run resend-leads -- <תיקייה>  # שליחה מחדש מהגיבוי. בעל העסק מריץ, והסקריפט שואל את כתובת הוובהוק
 npm run build       # בנייה, כמו ב-Vercel
+npm run guard       # שומר הסודות: שום קוד סודי בקבצים שנשמרו (רץ לבד גם לפני כל שמירה והעלאה)
 npm test            # בדיקות
 npm run typecheck   # בדיקת טיפוסים
 ```

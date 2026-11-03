@@ -1,0 +1,3 @@
+#!/bin/sh
+# שומר הסודות: לפני כל העלאה ל-GitHub. לא עוקפים (בלי --no-verify)
+exec node scripts/secret-guard.mjs push

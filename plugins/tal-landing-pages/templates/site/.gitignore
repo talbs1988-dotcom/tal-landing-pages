@@ -13,6 +13,14 @@ next-env.d.ts
 # Vercel
 .vercel
 
+# גיבוי לידים שהורד מ-Vercel: פרטים של לקוחות, לא נכנסים ל-git
+leads/
+leads-*/
+
+# מפתחות
+*.pem
+*.key
+
 # מערכת
 .DS_Store
 npm-debug.log*

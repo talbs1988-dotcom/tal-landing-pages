@@ -1,0 +1,3 @@
+#!/bin/sh
+# שומר הסודות: לפני כל שמירה ב-git. לא עוקפים (בלי --no-verify)
+exec node scripts/secret-guard.mjs staged

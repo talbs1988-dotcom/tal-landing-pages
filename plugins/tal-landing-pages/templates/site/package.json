@@ -12,7 +12,9 @@
     "check:todo": "node scripts/check-todo.mjs",
     "check": "node scripts/check-page.mjs",
     "images": "node scripts/optimize-images.mjs",
-    "resend-leads": "node scripts/resend-leads.mjs"
+    "resend-leads": "node scripts/resend-leads.mjs",
+    "guard": "node scripts/secret-guard.mjs all",
+    "prepare": "node scripts/secret-guard.mjs install"
   },
   "dependencies": {
     "@fontsource/rubik": "5.3.0",
