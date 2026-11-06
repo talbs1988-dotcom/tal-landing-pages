@@ -542,3 +542,52 @@ test("isExcludedFromSite: backups (.bak) never get copied into a page's site/", 
   assert.equal(isExcludedFromSite("consent.ts"), false);
   assert.equal(isExcludedFromSite("bakery.tsx"), false);
 });
+
+import { scaffoldGallery } from "../plugins/tal-landing-pages/scripts/scaffold.mjs";
+
+async function galleryFixture() {
+  const gal = join(await tmp(), "gallery");
+  await mkdir(join(gal, "_sections"), { recursive: true });
+  await writeFile(join(gal, "page.tsx"), "export default function P() { return null; }");
+  await writeFile(join(gal, "_sections", "HeroAurora.tsx"), "x");
+  await writeFile(join(gal, ".DS_Store"), "x");
+  return gal;
+}
+
+test("scaffoldGallery copies the gallery into <site>/app/gallery-preview", async () => {
+  const page = await pageFixture();
+  await scaffoldSite(page);
+  const gal = await galleryFixture();
+  const r = await scaffoldGallery(page, { galleryDir: gal });
+  assert.equal(r.created, true);
+  assert.equal(r.path, join(page, "site", "app", "gallery-preview"));
+  assert.ok(await fileExists(join(r.path, "page.tsx")));
+  assert.ok(await fileExists(join(r.path, "_sections", "HeroAurora.tsx")));
+  assert.equal(await fileExists(join(r.path, ".DS_Store")), false);
+});
+
+test("scaffoldGallery never overwrites an existing gallery-preview", async () => {
+  const page = await pageFixture();
+  await scaffoldSite(page);
+  const gal = await galleryFixture();
+  await scaffoldGallery(page, { galleryDir: gal });
+  const mine = join(page, "site", "app", "gallery-preview", "page.tsx");
+  await writeFile(mine, "שלי");
+  const r = await scaffoldGallery(page, { galleryDir: gal });
+  assert.equal(r.created, false);
+  assert.equal(await readFile(mine, "utf8"), "שלי");
+});
+
+test("scaffoldGallery needs a site first", async () => {
+  const page = await pageFixture();
+  await assert.rejects(scaffoldGallery(page, { galleryDir: await galleryFixture() }), /קודם scaffold.mjs site/);
+});
+
+test("the real gallery template exists and has every recipe the docs list", async () => {
+  const real = fileURLToPath(new URL("../plugins/tal-landing-pages/templates/gallery/", import.meta.url));
+  const docs = await readFile(fileURLToPath(new URL("../plugins/tal-landing-pages/references/gallery.md", import.meta.url)), "utf8");
+  const listed = [...docs.matchAll(/^\| `([A-Z][A-Za-z]+)` +\|/gm)].map((m) => m[1]);
+  assert.ok(listed.length >= 10, "gallery.md lists the recipes");
+  for (const id of listed) assert.ok(await fileExists(join(real, "_sections", `${id}.tsx`)), id);
+  assert.ok(await fileExists(join(real, "page.tsx")));
+});

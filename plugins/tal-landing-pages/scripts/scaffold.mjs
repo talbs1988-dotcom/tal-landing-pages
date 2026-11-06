@@ -240,6 +240,25 @@ export async function scaffoldSite(pageDir, { templateDir = SITE_TEMPLATE } = {}
   return site;
 }
 
+// The section gallery (templates/gallery/) goes into the site as a temporary,
+// noindex route: <site>/app/gallery-preview/. The design stage shows it to the
+// business owner and reads its code, then deletes it (like brand-preview).
+// Never overwrites: an existing gallery-preview is left as is.
+const GALLERY_TEMPLATE = join(TEMPLATES, "gallery");
+export async function scaffoldGallery(pageDir, { galleryDir = GALLERY_TEMPLATE } = {}) {
+  if (blank(pageDir)) throw new Error("חסרה תיקיית הדף");
+  const site = join(resolve(pageDir), "site");
+  if (!(await exists(join(site, "package.json"))))
+    throw new Error(`אין עדיין אתר בתיקיית הדף: ${site}. קודם scaffold.mjs site.`);
+  const target = join(site, "app", "gallery-preview");
+  if (await exists(target)) return { created: false, path: target };
+  await cp(galleryDir, target, {
+    recursive: true,
+    filter: (src) => src === galleryDir || !isExcludedFromSite(basename(src)),
+  });
+  return { created: true, path: target };
+}
+
 // The template files each stage starts from: [template name, path inside the
 // page folder]. The only placeholder they get is {{pageName}}; design.md and
 // references.md have none.
@@ -298,6 +317,7 @@ const USAGE = [
   "  scaffold.mjs business <תיקיית העסק> <שם העסק>",
   "  scaffold.mjs page <תיקיית העסק> <שם הדף>",
   "  scaffold.mjs site <תיקיית הדף>",
+  "  scaffold.mjs gallery <תיקיית הדף>",
   "  scaffold.mjs stage-files <תיקיית הדף> <brief|copy|design|check|connect>",
   "  scaffold.mjs sync-business <תיקיית הדף>",
   "  scaffold.mjs is-business <תיקייה>",
@@ -314,6 +334,7 @@ async function cli([cmd, root, ...name]) {
       "business",
       "page",
       "site",
+      "gallery",
       "stage-files",
       "sync-business",
       "is-business",
@@ -328,6 +349,8 @@ async function cli([cmd, root, ...name]) {
   else if (cmd === "page")
     console.log(await scaffoldPage(root, { pageName: value }));
   else if (cmd === "site") console.log(await scaffoldSite(root));
+  else if (cmd === "gallery")
+    console.log(JSON.stringify(await scaffoldGallery(root), null, 2));
   else if (cmd === "sync-business")
     console.log(
       JSON.stringify(await syncBusiness(root, { findBusinessRoot }), null, 2),

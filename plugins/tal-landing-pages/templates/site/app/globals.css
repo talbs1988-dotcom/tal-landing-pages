@@ -165,3 +165,183 @@ html.a11y-links a * {
   color: inherit !important;
   background-color: transparent !important;
 }
+
+/*
+ * ===== כלי התנועה (components/motion) =====
+ * הכול בצבעי המותג, דרך המשתנים. "עצירת אנימציות" ו-prefers-reduced-motion (למעלה) עוצרים
+ * את כל ה-keyframes כאן. מה שנע בלולאה נעצר בנוסף במפורש, כדי שלא יישאר באמצע תנועה.
+ */
+@keyframes aurora-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(24px, -32px, 0) scale(1.06);
+  }
+}
+@keyframes aurora-float-2 {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-28px, 26px, 0) scale(1.08);
+  }
+}
+@keyframes grid-drift {
+  to {
+    background-position: 64px 64px;
+  }
+}
+@keyframes marquee-x {
+  to {
+    transform: translateX(50%);
+  }
+}
+@keyframes text-shine {
+  to {
+    background-position: 200% center;
+  }
+}
+@keyframes border-spin {
+  to {
+    --border-angle: 360deg;
+  }
+}
+@keyframes shine-sweep {
+  0%,
+  70% {
+    transform: translateX(120%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(-220%) skewX(-20deg);
+  }
+}
+
+.aurora-orb {
+  animation: aurora-float 16s ease-in-out infinite;
+  will-change: transform;
+}
+.aurora-orb-2 {
+  animation: aurora-float-2 20s ease-in-out infinite;
+  will-change: transform;
+}
+.aurora-grid {
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--brand-accent) 10%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--brand-accent) 10%, transparent) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse at 50% 30%, #000 20%, transparent 75%);
+  animation: grid-drift 24s linear infinite;
+}
+
+/* פס נע: ב-RTL התוכן זז ימינה (מ-0 ל-50%). reverse מריץ את אותה דרך הפוך (מ-50% ל-0), כלומר שמאלה.
+   לא משנים את היעד ל-50%-: ב-RTL הפס מעוגן לימין, ו-50%- מוציא אותו מהמסך */
+.marquee {
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-track {
+  animation: marquee-x var(--marquee-s, 40s) linear infinite;
+}
+.marquee-reverse {
+  animation-direction: reverse;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* כרטיס עם הילה שעוקבת אחרי העכבר (GlowCard) */
+/* המסגרת מצבע הטקסט של הסקשן (currentColor), אז היא נראית גם על כהה וגם על בהיר */
+.glow-card {
+  border: 1px solid color-mix(in oklab, currentColor 14%, transparent);
+}
+.glow-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    420px circle at var(--gx, 85%) var(--gy, 0%),
+    color-mix(in oklab, var(--brand-accent) 22%, transparent),
+    transparent 60%
+  );
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+.glow-card:hover::before {
+  opacity: 1;
+}
+
+/* טקסט בגרדיאנט מבריק של המותג, לכותרת או למילה אחת מודגשת */
+.text-shine {
+  background: linear-gradient(
+    110deg,
+    var(--brand-accent) 0%,
+    color-mix(in oklab, var(--brand-accent) 45%, #fff) 45%,
+    var(--brand-accent) 70%,
+    var(--brand-accent) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: text-shine 6s linear infinite;
+}
+
+/* מסגרת שזורם בה אור (כרטיס ההצעה, הטופס). הצבע מה-accent */
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.border-flow {
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(var(--card-bg, var(--brand-background)), var(--card-bg, var(--brand-background))) padding-box,
+    conic-gradient(
+        from var(--border-angle),
+        transparent 0deg,
+        var(--brand-accent) 60deg,
+        color-mix(in oklab, var(--brand-accent) 40%, #fff) 90deg,
+        transparent 150deg,
+        transparent 360deg
+      )
+      border-box;
+  animation: border-spin 6s linear infinite;
+}
+
+/* ברק שעובר על כפתור כל כמה שניות */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.45), transparent);
+  animation: shine-sweep 4.5s ease-in-out infinite;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* עצירה מלאה של כל מה שבלולאה: עומד במקום הנקי שלו, לא באמצע תנועה */
+html.a11y-no-motion :is(.aurora-orb, .aurora-orb-2, .aurora-grid, .marquee-track, .text-shine, .border-flow),
+html.a11y-no-motion .btn-shine::after {
+  animation: none !important;
+}
+html.a11y-no-motion .btn-shine::after {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.aurora-orb, .aurora-orb-2, .aurora-grid, .marquee-track, .text-shine, .border-flow) {
+    animation: none !important;
+  }
+  .btn-shine::after {
+    display: none;
+  }
+}

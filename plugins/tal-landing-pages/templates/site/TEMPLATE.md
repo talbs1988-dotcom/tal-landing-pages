@@ -21,6 +21,7 @@
 | הטקסטים השיווקיים בדף      | `content/copy.json`                           |
 | הדף הראשי                  | `app/page.tsx`                                |
 | סקשנים של הדף              | `components/sections/`                        |
+| כלי התנועה (כניסות, רקע חי, פס נע, מספרים שרצים) | `components/motion/` + סוף `app/globals.css` |
 | מבנה כללי (שפה, פונט, צבע) | `app/layout.tsx`, `app/globals.css`           |
 | לוגיקה (בלי תצוגה)         | `lib/`                                        |
 | תמונות                     | `public/assets/`                              |
@@ -228,6 +229,7 @@ npm run resend-leads -- ~/Downloads/leads             # שואל את כתובת
 - **AccessibilityWidget** והצהרת הנגישות.
 - **קישורי הפוטר**: מדיניות פרטיות, תקנון, נגישות, מחיקת נתונים ופתיחת העוגיות מחדש.
 - **`lang="he" dir="rtl"`**, פונט מקומי, וטופס אחד עם `id="lead-form"` (כבר מופיעים למעלה).
+- **`MotionRoot`** ב-`app/layout.tsx`: עוטף את הדף, ועוצר כל אנימציה של motion כשהגולש לחץ "עצירת אנימציות" או ביקש פחות תנועה במכשיר. בלעדיו כפתור הנגישות לא עוצר את האנימציות.
 
 ## משתני סביבה
 
@@ -343,3 +345,19 @@ satori, המנוע של `next/og`, **לא מכיר כיווניות בכלל**. 
 - כל `div` עם 2 ילדים או יותר חייב `display: "flex"`.
 - פונטים: קבצי **woff** מ-`@fontsource/rubik/files/` (satori לא תומך ב-woff2). עברית ולטינית הם קבצים נפרדים, נטענים בשמות שונים (`RubikHebrew`, `RubikLatin`), ו-`fontFamily: "RubikLatin, RubikHebrew"` בוחר לפי התו.
 - **אחרי כל שדרוג של Next** לרנדר שוב (`npm run build && npm start`, לפתוח `/opengraph-image`) ולבדוק בעיניים. אם גרסה חדשה של satori תתחיל להפוך עברית בעצמה, הטקסט ייצא הפוך, ואז מוחקים את ההיפוך ב-`visualText`.
+
+## תנועה: `components/motion/`
+
+כלי האנימציה של האתר, על החבילה `motion` (גרסה נעולה ב-`package.json`). הפירוט, מתי משתמשים בכל אחד ומה אסור: `references/motion.md` בפלאגין. דוגמאות מלאות: הגלריה (`references/gallery.md`).
+
+| הכלי | מה הוא עושה |
+| --- | --- |
+| `Reveal`, `Stagger` + `StaggerItem` | כניסה כשהאלמנט נכנס למסך, אחד או בהדרגה |
+| `CountUp` | מספר שרץ עד הערך. בלי תנועה: הערך הסופי |
+| `Marquee` | פס שזז בלי סוף (CSS), נעצר במעבר עכבר |
+| `Aurora` | רקע חי בצבעי המותג (CSS) |
+| `GlowCard` | כרטיס עם הילה שעוקבת אחרי העכבר |
+| `Parallax`, `ScrollLine` | תנועה שקשורה לגלילה |
+| `text-shine`, `border-flow`, `btn-shine` (CSS) | מילה מבריקה, מסגרת זורמת, ברק על הכפתור |
+
+כולם עוצרים לבד עם "עצירת אנימציות" ועם "פחות תנועה" במכשיר: motion דרך `MotionRoot`, ה-CSS דרך הכללים בסוף `globals.css`. הכותרת הראשית ותמונת הפתיחה לא מתחילות שקופות.
