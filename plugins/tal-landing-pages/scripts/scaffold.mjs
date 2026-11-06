@@ -240,6 +240,75 @@ export async function scaffoldSite(pageDir, { templateDir = SITE_TEMPLATE } = {}
   return site;
 }
 
+// Motion tools for a site that was created before they joined the template
+// (pages started on an older version of the plugin). Idempotent: each part is
+// added only if missing. Returns what was done; `install` means package.json
+// gained `motion` and `npm install` must run.
+const MOTION_CSS_MARKER = "===== כלי התנועה (components/motion) =====";
+export async function scaffoldMotion(pageDir, { templateDir = SITE_TEMPLATE } = {}) {
+  if (blank(pageDir)) throw new Error("חסרה תיקיית הדף");
+  const site = join(resolve(pageDir), "site");
+  if (!(await exists(join(site, "package.json"))))
+    throw new Error(`אין עדיין אתר בתיקיית הדף: ${site}. קודם scaffold.mjs site.`);
+  const done = [];
+  if (!(await exists(join(site, "components", "motion", "index.ts")))) {
+    await cp(join(templateDir, "components", "motion"), join(site, "components", "motion"), {
+      recursive: true,
+      filter: (src) => !isExcludedFromSite(basename(src)),
+    });
+    done.push("components/motion");
+  }
+  const cssPath = join(site, "app", "globals.css");
+  const css = await readFile(cssPath, "utf8");
+  if (!css.includes(MOTION_CSS_MARKER)) {
+    const tpl = await readFile(join(templateDir, "app", "globals.css"), "utf8");
+    const at = tpl.lastIndexOf("/*", tpl.indexOf(MOTION_CSS_MARKER));
+    await writeFile(cssPath, `${css.trimEnd()}\n\n${tpl.slice(at)}`);
+    done.push("globals.css");
+  }
+  const layoutPath = join(site, "app", "layout.tsx");
+  let layout = await readFile(layoutPath, "utf8");
+  if (!layout.includes("MotionRoot")) {
+    const wrapped = layout.replace(/\{children\}/, "<MotionRoot>{children}</MotionRoot>");
+    if (wrapped === layout)
+      throw new Error(`לא מצאתי את {children} ב-${layoutPath}. צריך לעטוף אותו ב-<MotionRoot> בעצמך.`);
+    layout = `import { MotionRoot } from "@/components/motion/MotionRoot";\n${wrapped}`;
+    await writeFile(layoutPath, layout);
+    done.push("app/layout.tsx");
+  }
+  const pkgPath = join(site, "package.json");
+  const pkg = JSON.parse(await readFile(pkgPath, "utf8"));
+  const tplPkg = JSON.parse(await readFile(join(templateDir, "package.json"), "utf8"));
+  let install = false;
+  if (!pkg.dependencies?.motion) {
+    pkg.dependencies = { ...(pkg.dependencies ?? {}), motion: tplPkg.dependencies.motion };
+    await writeFile(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+    done.push("package.json");
+    install = true;
+  }
+  return { done, install };
+}
+
+// The section gallery (templates/gallery/) goes into the site as a temporary,
+// noindex route: <site>/app/gallery-preview/. The design stage shows it to the
+// business owner and reads its code, then deletes it (like brand-preview).
+// Never overwrites: an existing gallery-preview is left as is.
+const GALLERY_TEMPLATE = join(TEMPLATES, "gallery");
+export async function scaffoldGallery(pageDir, { galleryDir = GALLERY_TEMPLATE } = {}) {
+  if (blank(pageDir)) throw new Error("חסרה תיקיית הדף");
+  const site = join(resolve(pageDir), "site");
+  if (!(await exists(join(site, "package.json"))))
+    throw new Error(`אין עדיין אתר בתיקיית הדף: ${site}. קודם scaffold.mjs site.`);
+  const motion = await scaffoldMotion(pageDir);
+  const target = join(site, "app", "gallery-preview");
+  if (await exists(target)) return { created: false, path: target, motion };
+  await cp(galleryDir, target, {
+    recursive: true,
+    filter: (src) => src === galleryDir || !isExcludedFromSite(basename(src)),
+  });
+  return { created: true, path: target, motion };
+}
+
 // The template files each stage starts from: [template name, path inside the
 // page folder]. The only placeholder they get is {{pageName}}; design.md and
 // references.md have none.
@@ -298,6 +367,8 @@ const USAGE = [
   "  scaffold.mjs business <תיקיית העסק> <שם העסק>",
   "  scaffold.mjs page <תיקיית העסק> <שם הדף>",
   "  scaffold.mjs site <תיקיית הדף>",
+  "  scaffold.mjs gallery <תיקיית הדף>",
+  "  scaffold.mjs motion <תיקיית הדף>",
   "  scaffold.mjs stage-files <תיקיית הדף> <brief|copy|design|check|connect>",
   "  scaffold.mjs sync-business <תיקיית הדף>",
   "  scaffold.mjs is-business <תיקייה>",
@@ -314,6 +385,8 @@ async function cli([cmd, root, ...name]) {
       "business",
       "page",
       "site",
+      "gallery",
+      "motion",
       "stage-files",
       "sync-business",
       "is-business",
@@ -328,6 +401,10 @@ async function cli([cmd, root, ...name]) {
   else if (cmd === "page")
     console.log(await scaffoldPage(root, { pageName: value }));
   else if (cmd === "site") console.log(await scaffoldSite(root));
+  else if (cmd === "gallery")
+    console.log(JSON.stringify(await scaffoldGallery(root), null, 2));
+  else if (cmd === "motion")
+    console.log(JSON.stringify(await scaffoldMotion(root), null, 2));
   else if (cmd === "sync-business")
     console.log(
       JSON.stringify(await syncBusiness(root, { findBusinessRoot }), null, 2),

@@ -12,6 +12,7 @@ import { A11yInit } from "@/components/A11yInit";
 import { SkipLink } from "@/components/SkipLink";
 import { AccessibilityWidget } from "@/components/AccessibilityWidget";
 import { DevEditMode } from "@/components/DevEditMode";
+import { MotionRoot } from "@/components/motion/MotionRoot";
 import "./globals.css";
 
 // הפונט נארז בזמן הבנייה ומוגש מהאתר עצמו. הדפדפן לא פונה לגוגל.
@@ -55,10 +56,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <body className="flex min-h-dvh flex-col antialiased">
         <A11yInit />
+        {/* בלי JavaScript, אלמנטים שמחכים לאנימציית כניסה (opacity:0) מופיעים מיד */}
+        <noscript>
+          <style>{`[style*="opacity:0"],[style*="opacity: 0"]{opacity:1!important;transform:none!important;filter:none!important}`}</style>
+        </noscript>
         <JsonLd />
         <SkipLink />
         <main id="main" className="flex-1">
-          {children}
+          {/* כל אנימציה בדף נעצרת עם "עצירת אנימציות" בכפתור הנגישות (components/motion) */}
+          <MotionRoot>{children}</MotionRoot>
         </main>
         <Footer />
         <CookieBanner />

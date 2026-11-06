@@ -542,3 +542,102 @@ test("isExcludedFromSite: backups (.bak) never get copied into a page's site/", 
   assert.equal(isExcludedFromSite("consent.ts"), false);
   assert.equal(isExcludedFromSite("bakery.tsx"), false);
 });
+
+import { scaffoldGallery } from "../plugins/tal-landing-pages/scripts/scaffold.mjs";
+
+async function galleryFixture() {
+  const gal = join(await tmp(), "gallery");
+  await mkdir(join(gal, "_sections"), { recursive: true });
+  await writeFile(join(gal, "page.tsx"), "export default function P() { return null; }");
+  await writeFile(join(gal, "_sections", "HeroAurora.tsx"), "x");
+  await writeFile(join(gal, ".DS_Store"), "x");
+  return gal;
+}
+
+test("scaffoldGallery copies the gallery into <site>/app/gallery-preview", async () => {
+  const page = await pageFixture();
+  await scaffoldSite(page);
+  const gal = await galleryFixture();
+  const r = await scaffoldGallery(page, { galleryDir: gal });
+  assert.equal(r.created, true);
+  assert.equal(r.path, join(page, "site", "app", "gallery-preview"));
+  assert.ok(await fileExists(join(r.path, "page.tsx")));
+  assert.ok(await fileExists(join(r.path, "_sections", "HeroAurora.tsx")));
+  assert.equal(await fileExists(join(r.path, ".DS_Store")), false);
+});
+
+test("scaffoldGallery never overwrites an existing gallery-preview", async () => {
+  const page = await pageFixture();
+  await scaffoldSite(page);
+  const gal = await galleryFixture();
+  await scaffoldGallery(page, { galleryDir: gal });
+  const mine = join(page, "site", "app", "gallery-preview", "page.tsx");
+  await writeFile(mine, "שלי");
+  const r = await scaffoldGallery(page, { galleryDir: gal });
+  assert.equal(r.created, false);
+  assert.equal(await readFile(mine, "utf8"), "שלי");
+});
+
+test("scaffoldGallery needs a site first", async () => {
+  const page = await pageFixture();
+  await assert.rejects(scaffoldGallery(page, { galleryDir: await galleryFixture() }), /קודם scaffold.mjs site/);
+});
+
+test("the real gallery template exists and has every recipe the docs list", async () => {
+  const real = fileURLToPath(new URL("../plugins/tal-landing-pages/templates/gallery/", import.meta.url));
+  const docs = await readFile(fileURLToPath(new URL("../plugins/tal-landing-pages/references/gallery.md", import.meta.url)), "utf8");
+  const listed = [...docs.matchAll(/^\| `([A-Z][A-Za-z]+)` +\|/gm)].map((m) => m[1]);
+  assert.ok(listed.length >= 10, "gallery.md lists the recipes");
+  for (const id of listed) assert.ok(await fileExists(join(real, "_sections", `${id}.tsx`)), id);
+  assert.ok(await fileExists(join(real, "page.tsx")));
+});
+
+import { scaffoldMotion } from "../plugins/tal-landing-pages/scripts/scaffold.mjs";
+import { rm } from "node:fs/promises";
+
+// אתר שנוצר לפני שכלי התנועה נכנסו לתבנית
+async function oldSitePage() {
+  const page = await pageFixture();
+  const site = await scaffoldSite(page);
+  await rm(join(site, "components", "motion"), { recursive: true });
+  const css = await readFile(join(site, "app", "globals.css"), "utf8");
+  await writeFile(join(site, "app", "globals.css"), css.slice(0, css.lastIndexOf("/*", css.indexOf("===== כלי התנועה"))));
+  const layout = await readFile(join(site, "app", "layout.tsx"), "utf8");
+  await writeFile(
+    join(site, "app", "layout.tsx"),
+    layout.replace(/import \{ MotionRoot \}[^\n]*\n/, "").replace(/\{\/\*[^\n]*עצירת אנימציות[^\n]*\*\/\}\n\s*/, "").replace("<MotionRoot>{children}</MotionRoot>", "{children}"),
+  );
+  const pkg = JSON.parse(await readFile(join(site, "package.json"), "utf8"));
+  delete pkg.dependencies.motion;
+  await writeFile(join(site, "package.json"), JSON.stringify(pkg, null, 2));
+  return { page, site };
+}
+
+test("scaffoldMotion brings an old site up to date, once", async () => {
+  const { page, site } = await oldSitePage();
+  assert.equal((await readFile(join(site, "app", "layout.tsx"), "utf8")).includes("MotionRoot"), false);
+  const r = await scaffoldMotion(page);
+  assert.deepEqual(r.done, ["components/motion", "globals.css", "app/layout.tsx", "package.json"]);
+  assert.equal(r.install, true);
+  assert.ok(await fileExists(join(site, "components", "motion", "Reveal.tsx")));
+  const layout = await readFile(join(site, "app", "layout.tsx"), "utf8");
+  assert.match(layout, /<MotionRoot>\{children\}<\/MotionRoot>/);
+  assert.match(layout, /import \{ MotionRoot \} from "@\/components\/motion\/MotionRoot"/);
+  assert.match(await readFile(join(site, "app", "globals.css"), "utf8"), /\.marquee-track/);
+  assert.ok(JSON.parse(await readFile(join(site, "package.json"), "utf8")).dependencies.motion);
+  const again = await scaffoldMotion(page);
+  assert.deepEqual(again, { done: [], install: false });
+});
+
+test("scaffoldMotion on a current site changes nothing", async () => {
+  const page = await pageFixture();
+  await scaffoldSite(page);
+  assert.deepEqual(await scaffoldMotion(page), { done: [], install: false });
+});
+
+test("scaffoldGallery adds the motion tools to an old site first", async () => {
+  const { page, site } = await oldSitePage();
+  const r = await scaffoldGallery(page, { galleryDir: await galleryFixture() });
+  assert.equal(r.motion.install, true);
+  assert.ok(await fileExists(join(site, "components", "motion", "index.ts")));
+});
