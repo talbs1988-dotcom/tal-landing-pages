@@ -17,7 +17,7 @@ import {
   useTransform,
 } from "motion/react";
 import { useRef, type ReactNode } from "react";
-import { Aurora, EASE } from "@/components/motion";
+import { Aurora, EASE, useLiveMotion } from "@/components/motion";
 import { DemoImage } from "../_kit/DemoImage";
 import { DemoCta } from "../_kit/DemoCta";
 
@@ -64,6 +64,13 @@ const enter = (delay: number) => ({
   transition: { duration: 0.7, delay, ease: EASE },
 });
 
+/** הכותרת המשנית והכפתור: רק תזוזה קטנה, בלי שקיפות. הם חלק ממה שגוגל ומטא מודדים כ"נטען" */
+const rise = (delay: number) => ({
+  initial: { y: 16 },
+  animate: { y: 0 },
+  transition: { duration: 0.75, delay, ease: EASE },
+});
+
 /** כרטיס צף: נכנס אחרי התמונה, זז בגלילה בקצב משלו, ומרחף לאט */
 function FloatChip({
   children,
@@ -79,9 +86,10 @@ function FloatChip({
   float: number;
 }) {
   const reduce = useReducedMotionConfig();
+  const live = useLiveMotion();
   return (
     <motion.div
-      style={reduce ? undefined : { y: drift }}
+      style={live ? { y: drift } : { y: 0 }}
       className={`absolute z-20 ${className}`}
     >
       <motion.div
@@ -112,6 +120,7 @@ function FloatChip({
 
 export default function HeroSplit({ text }: { text: HeroSplitText }) {
   const reduce = useReducedMotionConfig();
+  const live = useLiveMotion();
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -163,14 +172,14 @@ export default function HeroSplit({ text }: { text: HeroSplitText }) {
           </h1>
 
           <motion.p
-            {...enter(0.18)}
+            {...rise(0.18)}
             className="mt-6 max-w-[34rem] text-pretty text-[1.0625rem] leading-relaxed text-foreground/80 sm:text-xl"
           >
             {text.subtitle}
           </motion.p>
 
           <motion.div
-            {...enter(0.3)}
+            {...rise(0.3)}
             className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-5"
           >
             <DemoCta>
@@ -254,7 +263,7 @@ export default function HeroSplit({ text }: { text: HeroSplitText }) {
             }}
           />
 
-          <motion.div style={reduce ? undefined : { y: imgY }}>
+          <motion.div style={live ? { y: imgY } : { y: 0 }}>
             <motion.div
               initial={{ scale: 0.96 }}
               animate={{ scale: 1 }}

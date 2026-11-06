@@ -15,7 +15,7 @@ import {
   useTransform,
 } from "motion/react";
 import { useRef } from "react";
-import { Aurora, EASE } from "@/components/motion";
+import { Aurora, EASE, useLiveMotion } from "@/components/motion";
 import { DemoImage } from "../_kit/DemoImage";
 import { DemoCta } from "../_kit/DemoCta";
 
@@ -53,8 +53,16 @@ const enter = (delay: number) => ({
   transition: { duration: 0.75, delay, ease: EASE },
 });
 
+/** הכותרת המשנית והכפתור: רק תזוזה קטנה, בלי שקיפות. הם חלק ממה שגוגל ומטא מודדים כ"נטען" */
+const rise = (delay: number) => ({
+  initial: { y: 18 },
+  animate: { y: 0 },
+  transition: { duration: 0.75, delay, ease: EASE },
+});
+
 export default function HeroAurora({ text }: { text: HeroAuroraText }) {
   const reduce = useReducedMotionConfig();
+  const live = useLiveMotion();
   const frameRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: frameRef,
@@ -63,7 +71,7 @@ export default function HeroAurora({ text }: { text: HeroAuroraText }) {
   const tilt = useTransform(scrollYProgress, [0, 1], [10, 0]);
 
   return (
-    <section
+    <section data-tone="dark"
       aria-labelledby="gallery-heroaurora-title"
       className="relative isolate overflow-hidden bg-secondary pb-16 pt-14 sm:pb-24 sm:pt-20 lg:pt-24"
     >
@@ -110,7 +118,7 @@ export default function HeroAurora({ text }: { text: HeroAuroraText }) {
         </h1>
 
         <motion.p
-          {...enter(0.2)}
+          {...rise(0.2)}
           className="mt-7 max-w-[56ch] text-balance text-[1.0625rem] leading-relaxed text-white/80 sm:text-xl"
         >
           {text.subtitle}
@@ -146,7 +154,7 @@ export default function HeroAurora({ text }: { text: HeroAuroraText }) {
         </ul>
 
         <motion.div
-          {...enter(0.55)}
+          {...rise(0.55)}
           className="mt-9 flex flex-col items-center gap-3 sm:mt-10"
         >
           <DemoCta>
@@ -186,7 +194,7 @@ export default function HeroAurora({ text }: { text: HeroAuroraText }) {
           />
           <motion.div
             style={
-              reduce ? undefined : { rotateX: tilt, transformOrigin: "50% 0%" }
+              live ? { rotateX: tilt, transformOrigin: "50% 0%" } : { rotateX: 0, transformOrigin: "50% 0%" }
             }
             initial={{ scale: 0.96 }}
             animate={{ scale: 1 }}

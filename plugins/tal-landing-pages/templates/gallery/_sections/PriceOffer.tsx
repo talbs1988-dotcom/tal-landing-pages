@@ -5,7 +5,7 @@
  * בדף אמיתי: כל טקסט מ-t("offer.<שדה>") עם {...editProps("offer.<שדה>")} על האלמנט שלו בלבד:
  * offer.eyebrow, offer.title, offer.sub, offer.plan, offer.planNote, offer.item1 עד offer.item5,
  * offer.oldPrice, offer.price, offer.priceNote, offer.urgency, offer.guarantee. הכפתור הוא CtaButton, לא DemoCta.
- * אין מחיר בדף? price = "שיחה ללא עלות", ובלי oldPrice (לא מציגים את השורה המחוקה).
+ * אין מחיר בקופי? שורת המחיר נמחקת (לא כותבים מחיר או "ללא עלות" שלא אושרו), וגם oldPrice.
  */
 import type { CSSProperties } from "react";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
@@ -88,7 +88,7 @@ export default function PriceOffer({ text }: { text: PriceOfferText }) {
       "color-mix(in oklab, var(--brand-secondary) 88%, white)",
   } as CSSProperties;
   return (
-    <section
+    <section data-tone="dark"
       aria-labelledby="gallery-priceoffer-title"
       className="relative isolate overflow-hidden bg-secondary px-5 py-24 text-white md:px-8 md:py-32"
     >

@@ -56,6 +56,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <body className="flex min-h-dvh flex-col antialiased">
         <A11yInit />
+        {/* בלי JavaScript, אלמנטים שמחכים לאנימציית כניסה (opacity:0) מופיעים מיד */}
+        <noscript>
+          <style>{`[style*="opacity:0"],[style*="opacity: 0"]{opacity:1!important;transform:none!important;filter:none!important}`}</style>
+        </noscript>
         <JsonLd />
         <SkipLink />
         <main id="main" className="flex-1">

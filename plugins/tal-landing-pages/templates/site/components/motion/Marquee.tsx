@@ -9,9 +9,10 @@ import type { ReactNode } from "react";
 export function Marquee({ children, seconds = 40, reverse = false, className = "" }: { children: ReactNode; seconds?: number; reverse?: boolean; className?: string }) {
   return (
     <div className={`marquee group relative overflow-hidden ${className}`} style={{ ["--marquee-s" as string]: `${seconds}s` }}>
-      <div className={`marquee-track flex w-max gap-6 ${reverse ? "marquee-reverse" : ""}`}>
-        <div className="flex shrink-0 gap-6">{children}</div>
-        <div className="flex shrink-0 gap-6" aria-hidden="true">
+      {/* בלי gap בין שני העותקים: הרווח הוא pe-6 בסוף כל עותק, כדי ש-50% יהיה בדיוק עותק אחד (בלי קפיצה) */}
+      <div className={`marquee-track flex w-max ${reverse ? "marquee-reverse" : ""}`}>
+        <div className="flex shrink-0 gap-6 pe-6">{children}</div>
+        <div className="flex shrink-0 gap-6 pe-6" aria-hidden="true" inert>
           {children}
         </div>
       </div>

@@ -166,7 +166,7 @@ export default function SolutionBento({ text }: { text: SolutionBentoText }) {
   ];
 
   return (
-    <section
+    <section data-tone="dark"
       aria-labelledby={ID}
       className="relative isolate overflow-hidden bg-secondary py-20 text-background sm:py-28 lg:py-32"
     >

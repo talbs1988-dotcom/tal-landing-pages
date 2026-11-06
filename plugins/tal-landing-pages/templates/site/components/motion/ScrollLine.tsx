@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useScroll, useSpring, useReducedMotionConfig } from "motion/react";
+import { motion, useScroll, useSpring } from "motion/react";
+import { useLiveMotion } from "./useLiveMotion";
 import { useRef, type ReactNode } from "react";
 
 /**
@@ -9,7 +10,7 @@ import { useRef, type ReactNode } from "react";
  */
 export function ScrollLine({ children, className = "" }: { children: ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotionConfig();
+  const live = useLiveMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 75%", "end 60%"] });
   const scaleY = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.3 });
   return (
@@ -18,7 +19,7 @@ export function ScrollLine({ children, className = "" }: { children: ReactNode; 
       <motion.div
         aria-hidden="true"
         className="absolute inset-y-0 start-5 w-px origin-top bg-accent md:start-7"
-        style={{ scaleY: reduce ? 1 : scaleY }}
+        style={{ scaleY: live ? scaleY : 1 }}
       />
       {children}
     </div>

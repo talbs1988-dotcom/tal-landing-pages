@@ -347,3 +347,26 @@ html.a11y-no-motion .btn-shine::after {
     display: none;
   }
 }
+
+/* סקשן שלא על המסך (MotionRoot שם data-offscreen): הלולאות נעצרות. חוסך מעבד וסוללה בטלפון */
+section[data-offscreen] :is(.aurora-orb, .aurora-orb-2, .aurora-grid, .marquee-track, .text-shine, .border-flow),
+section[data-offscreen] .btn-shine::after {
+  animation-play-state: paused;
+}
+
+/* סקשן כהה (data-tone="dark"): טבעת הפוקוס בצבע ה-accent, כי ה-primary על כהה לא נראה (מתחת ל-3:1) */
+[data-tone="dark"] :focus-visible {
+  outline-color: var(--brand-accent);
+}
+
+/* הילה שעוקבת אחרי העכבר: בלי תנועה, נשארת קבועה בפינה */
+html.a11y-no-motion .glow-card::before {
+  background: radial-gradient(420px circle at 85% 0%, color-mix(in oklab, var(--brand-accent) 22%, transparent), transparent 60%);
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .glow-card::before {
+    background: radial-gradient(420px circle at 85% 0%, color-mix(in oklab, var(--brand-accent) 22%, transparent), transparent 60%);
+    transition: none;
+  }
+}

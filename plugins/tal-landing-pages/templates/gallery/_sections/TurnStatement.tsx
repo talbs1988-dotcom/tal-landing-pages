@@ -14,7 +14,7 @@ import {
   useTransform,
 } from "motion/react";
 import { useRef } from "react";
-import { EASE, Reveal } from "@/components/motion";
+import { EASE, Reveal, useLiveMotion } from "@/components/motion";
 import { DemoImage } from "../_kit/DemoImage";
 
 export type TurnStatementText = {
@@ -41,14 +41,17 @@ function MaskLine({
   children,
   delay,
   className = "",
+  ...rest
 }: {
   children: string;
   delay: number;
   className?: string;
+  "data-edit"?: string;
 }) {
   return (
     <span className="block overflow-hidden pb-[0.04em] pt-[0.1em]">
       <motion.span
+        {...rest}
         className={`block ${className}`}
         variants={{
           hidden: { y: "108%" },
@@ -63,6 +66,7 @@ function MaskLine({
 
 export default function TurnStatement({ text }: { text: TurnStatementText }) {
   const reduce = useReducedMotionConfig();
+  const live = useLiveMotion();
   const imgRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: imgRef,
@@ -76,7 +80,7 @@ export default function TurnStatement({ text }: { text: TurnStatementText }) {
   const zoom = useTransform(scrollYProgress, [0, 1], [1.28, 1]);
 
   return (
-    <section
+    <section data-tone="dark"
       aria-labelledby="gallery-turnstatement-title"
       className="relative isolate overflow-hidden bg-secondary py-24 text-white sm:py-32 lg:py-40"
     >
@@ -136,11 +140,11 @@ export default function TurnStatement({ text }: { text: TurnStatementText }) {
 
           <div ref={imgRef} className="lg:col-span-8">
             <motion.div
-              style={reduce ? undefined : { clipPath: clip }}
+              style={live ? { clipPath: clip } : { clipPath: "none" }}
               className="relative aspect-[4/5] overflow-hidden rounded-[28px] sm:aspect-[16/10]"
             >
               <motion.div
-                style={reduce ? undefined : { scale: zoom }}
+                style={live ? { scale: zoom } : { scale: 1 }}
                 className="absolute inset-0"
               >
                 <DemoImage

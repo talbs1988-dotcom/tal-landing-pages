@@ -3,7 +3,7 @@
  * מה עושה אותו: פורטרט גדול עם מסגרת זהב מוסטת וטבעת אור שמסתובבת לאט מאחוריו,
  * תגית קטנה שצפה על התמונה, שם גדול ושורת תפקיד, שתי פסקאות קצרות ושלושה מספרים שרצים.
  * איך מתאימים לסקשן אמיתי: כל שדה כאן הוא מפתח ב-copy.json, למשל t("about.name"),
- * ועל כל אלמנט טקסט {...editProps("about.name")}. המספרים: Number(t("about.stat1Value")).
+ * ועל כל אלמנט טקסט {...editProps("about.name")}. המספרים: <CountUp text={t("about.stat1Value")} {...editProps("about.stat1Value")} /> (הטקסט כמו שהוא, גם "1,200").
  * את DemoImage מחליפים ב-next/image עם alt={alt("about")}, width/height מסקריפט התמונות.
  * אין כאן כפתור. אם הקופי מבקש כפתור, CtaButton מתחת למספרים (לא DemoCta).
  */
@@ -207,7 +207,7 @@ export default function AboutAuthority({ text }: { text: AboutAuthorityText }) {
                 />
                 <p className="flex flex-col gap-1 text-primary sm:flex-row sm:items-baseline sm:gap-1.5">
                   <CountUp
-                    value={Number(st.v)}
+                    text={st.v}
                     className="text-[1.75rem] font-extrabold leading-none sm:text-[2.75rem]"
                   />
                   <span className="text-base font-bold sm:text-lg">{st.s}</span>

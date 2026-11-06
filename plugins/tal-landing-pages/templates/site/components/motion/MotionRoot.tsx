@@ -30,9 +30,15 @@ applyGlobal(wantsNoMotion());
  * - לחץ על "עצירת אנימציות" בכפתור הנגישות (ה-class על <html>).
  * בלי זה, אנימציות של motion לא שומעות את כפתור הנגישות: הן לא עוברות דרך ה-CSS.
  * לולאה שכתבתם בעצמכם בודקת useReducedMotionConfig() (לא useReducedMotion).
+ *
+ * עוד תפקיד: סקשן שלא על המסך מקבל data-offscreen, וה-CSS עוצר בו את הלולאות (רקע חי, פס נע,
+ * ברק). הן לא רצות על המעבד הגרפי, ובטלפון חלש הן לוקחות זמן גם כשלא רואים אותן.
  */
 export function MotionRoot({ children }: { children: ReactNode }) {
-  const [stopped, setStopped] = useState(wantsNoMotion);
+  // בציור הראשון בדיוק כמו בשרת ("never"), גם למי שביקש פחות תנועה. ערך אחר כבר בציור
+  // הראשון יוצר דף שונה מזה שהשרת שלח, ו-React לא מתקן את ההבדל (סגנונות נתקעים).
+  // את הכניסות של הפתיחה עוצר כבר עכשיו applyGlobal, שרץ כשהקובץ נטען.
+  const [mode, setMode] = useState<"never" | "always" | "user">("never");
 
   useEffect(() => {
     const html = document.documentElement;
@@ -40,21 +46,32 @@ export function MotionRoot({ children }: { children: ReactNode }) {
     const read = () => {
       const stop = wantsNoMotion();
       applyGlobal(stop);
-      setStopped(stop);
+      setMode(stop ? "always" : "user");
     };
     read();
     const obs = new MutationObserver(read);
     obs.observe(html, { attributes: true, attributeFilter: ["class"] });
     media.addEventListener("change", read);
+
+    const io =
+      "IntersectionObserver" in window
+        ? new IntersectionObserver((entries) => {
+            for (const e of entries)
+              (e.target as HTMLElement).toggleAttribute(
+                "data-offscreen",
+                !e.isIntersecting,
+              );
+          })
+        : null;
+    if (io)
+      for (const s of document.querySelectorAll("main section")) io.observe(s);
+
     return () => {
       obs.disconnect();
+      io?.disconnect();
       media.removeEventListener("change", read);
     };
   }, []);
 
-  return (
-    <MotionConfig reducedMotion={stopped ? "always" : "user"}>
-      {children}
-    </MotionConfig>
-  );
+  return <MotionConfig reducedMotion={mode}>{children}</MotionConfig>;
 }

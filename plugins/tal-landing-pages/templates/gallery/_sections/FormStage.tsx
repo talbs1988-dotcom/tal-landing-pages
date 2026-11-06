@@ -97,7 +97,7 @@ export default function FormStage({ text }: { text: FormStageText }) {
     ["--card-bg" as string]: "var(--brand-background)",
   } as CSSProperties;
   return (
-    <section
+    <section data-tone="dark"
       aria-labelledby="gallery-formstage-title"
       className="relative isolate overflow-hidden px-5 py-24 text-white md:px-8 md:py-32"
     >

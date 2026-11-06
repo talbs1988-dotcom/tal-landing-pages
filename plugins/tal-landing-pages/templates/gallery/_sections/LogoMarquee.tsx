@@ -6,7 +6,7 @@
  * איך מתאימים לסקשן אמיתי: t("logos.title"), t("logos.stat1Value") וכו', עם
  * {...editProps("logos.title")} על כל אלמנט טקסט. כל "לוגו" כאן הוא next/image אמיתי
  * מ-public/assets (בשמות logo1, logo2...), בגובה קבוע (h-8 עד h-10), עם alt={alt("logo1")} בשם של העסק.
- * המספרים: Number(t("logos.stat1Value")).
+ * המספרים: <CountUp text={t("logos.stat1Value")} {...editProps("logos.stat1Value")} /> (הטקסט כמו שהוא, גם "1,200").
  */
 import {
   CountUp,
@@ -186,7 +186,7 @@ export default function LogoMarquee({ text }: { text: LogoMarqueeText }) {
             >
               <p className="flex shrink-0 items-baseline gap-1.5 text-primary">
                 <CountUp
-                  value={Number(st.v)}
+                  text={st.v}
                   className="text-[2.25rem] font-extrabold leading-none sm:text-[2.75rem]"
                 />
                 <span className="text-base font-bold sm:text-lg">{st.s}</span>
