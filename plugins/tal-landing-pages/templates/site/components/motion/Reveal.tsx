@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type HTMLMotionProps } from "motion/react";
+import { motion, useReducedMotionConfig, type HTMLMotionProps } from "motion/react";
 import { EASE } from "./ease";
 
 type Variant = "rise" | "fade" | "blur" | "scale" | "slide-start";
@@ -26,12 +26,15 @@ type Props = Omit<HTMLMotionProps<"div">, "initial" | "whileInView"> & {
 /**
  * אלמנט שמופיע כשהוא נכנס למסך. לא על הפתיחה (שם משתמשים ב-animate, כדי שהכותרת
  * תופיע מיד), ולא על הטופס.
+ * בלי תנועה ("עצירת אנימציות" או הגדרת המכשיר): הכול מופיע מיד בטעינה, גם מה שעוד לא
+ * הגיע למסך, כדי שחיפוש בדף, צילום מסך ובודקי נגישות יראו את כל התוכן.
  */
 export function Reveal({ variant = "rise", delay = 0, duration = 0.7, amount = 0.25, transition, ...rest }: Props) {
+  const reduce = useReducedMotionConfig();
   return (
     <motion.div
       initial={FROM[variant]}
-      whileInView={TO}
+      {...(reduce ? { animate: TO } : { whileInView: TO })}
       viewport={{ once: true, amount }}
       transition={{ duration, delay, ease: EASE, ...transition }}
       {...rest}
@@ -41,10 +44,11 @@ export function Reveal({ variant = "rise", delay = 0, duration = 0.7, amount = 0
 
 /** קבוצה שהילדים שלה (StaggerItem) מופיעים אחד אחרי השני */
 export function Stagger({ gap = 0.09, delay = 0, amount = 0.2, ...rest }: Omit<HTMLMotionProps<"div">, "variants"> & { gap?: number; delay?: number; amount?: number }) {
+  const reduce = useReducedMotionConfig();
   return (
     <motion.div
       initial="hidden"
-      whileInView="show"
+      {...(reduce ? { animate: "show" } : { whileInView: "show" })}
       viewport={{ once: true, amount }}
       variants={{ hidden: {}, show: { transition: { staggerChildren: gap, delayChildren: delay } } }}
       {...rest}

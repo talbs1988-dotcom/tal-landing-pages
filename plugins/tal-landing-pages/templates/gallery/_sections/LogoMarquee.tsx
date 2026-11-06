@@ -5,7 +5,7 @@
  * העין קולטת "הרבה עסקים" בלי שצריך לקרוא כל שם.
  * איך מתאימים לסקשן אמיתי: t("logos.title"), t("logos.stat1Value") וכו', עם
  * {...editProps("logos.title")} על כל אלמנט טקסט. כל "לוגו" כאן הוא next/image אמיתי
- * מ-public/assets/logos, בגובה קבוע (h-8 עד h-10), עם alt={alt("logo1")} בשם של העסק.
+ * מ-public/assets (בשמות logo1, logo2...), בגובה קבוע (h-8 עד h-10), עם alt={alt("logo1")} בשם של העסק.
  * המספרים: Number(t("logos.stat1Value")).
  */
 import {

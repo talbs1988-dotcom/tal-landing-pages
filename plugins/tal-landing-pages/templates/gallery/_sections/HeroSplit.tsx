@@ -7,7 +7,7 @@
  * ביצועים: הכותרת והתמונה גלויות מהציור הראשון (אין להן opacity 0), כי הן ה-LCP. רק השאר נכנס בתנועה.
  * בדף אמיתי: t("hero.eyebrow"), t("hero.titleStart"), t("hero.titleHighlight"), t("hero.subtitle"), t("hero.ctaNote"),
  * t("hero.stat1Value") / t("hero.stat1Label") וכו', t("hero.chipValue"), t("hero.noticeTitle"); {...editProps(key)} על כל אחד.
- * התמונה: next/image עם priority ו-alt={alt("hero")}. הכפתור: CtaButton, לא DemoCta.
+ * התמונה: next/image עם fetchPriority="high" (לא priority, הוא מיושן) ו-alt={alt("hero")}. הכפתור: CtaButton, לא DemoCta.
  */
 import {
   type MotionValue,

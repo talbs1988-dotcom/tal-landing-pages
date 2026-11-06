@@ -247,7 +247,9 @@ html.a11y-links a * {
 .marquee-reverse {
   animation-direction: reverse;
 }
-.marquee:hover .marquee-track {
+/* נעצר במעבר עכבר, וגם כשמגיעים אליו במקלדת (קישור או כפתור בתוך הפס) */
+.marquee:hover .marquee-track,
+.marquee:focus-within .marquee-track {
   animation-play-state: paused;
 }
 

@@ -6,7 +6,7 @@
  * ביצועים: הכותרת והתמונה גלויות מהציור הראשון (אין להן opacity 0), כי הן ה-LCP. רק השאר נכנס בתנועה.
  * בדף אמיתי: הטקסטים מ-t("hero.eyebrow"), t("hero.titleStart"), t("hero.titleHighlight"), t("hero.subtitle"),
  * t("hero.without1..3"), t("hero.ctaNote"), ועל כל אלמנט טקסט {...editProps(key)}.
- * התמונה: next/image עם priority ו-alt={alt("hero")}. הכפתור: CtaButton, לא DemoCta.
+ * התמונה: next/image עם fetchPriority="high" (לא priority, הוא מיושן) ו-alt={alt("hero")}. הכפתור: CtaButton, לא DemoCta.
  */
 import {
   motion,
