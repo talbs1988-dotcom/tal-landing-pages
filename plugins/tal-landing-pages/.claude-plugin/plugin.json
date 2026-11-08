@@ -1,7 +1,7 @@
 {
   "name": "tal-landing-pages",
   "description": "דפי נחיתה שעובדים בשבילך: סיסטם בשמונה שלבים לבניית דף נחיתה מקצועי בעברית, מהאפיון ועד ליד שמגיע ל-CRM",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": { "name": "Tal Bsore" },
   "keywords": [
     "landing-page",
